@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.mobile.ui.screens.LoginScreen
+import com.example.mobile.ui.screens.RegistrationScreen
 import kotlinx.serialization.Serializable
 
 sealed interface Route {
@@ -22,7 +23,7 @@ fun NavGraph(navController: NavHostController){
             LoginScreen(navController)
         }
         composable<Route.Registration>{
-            //RegistrationScreen(navController)
+            RegistrationScreen(navController)
         }
     }
 }

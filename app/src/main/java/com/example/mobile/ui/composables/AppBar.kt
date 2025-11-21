@@ -33,12 +33,13 @@ fun AppBar(navController: NavController, title: String) {
             }
         },
         actions = {
-            if (title == "TravelDiary") {
+            /*TODO PROM*/
+            if (title == "Home") {
                 IconButton(onClick = { /*TODO*/ }) {
                     Icon(Icons.Outlined.Search, contentDescription = "Search")
                 }
             }
-            if (title != "Settings") {
+            if (title != "Settings" && title != "Login" && title != "Registration") {
                 IconButton(onClick = { /*TODO*/ }) {
                     Icon(Icons.Outlined.Settings, "Settings")
                 }
