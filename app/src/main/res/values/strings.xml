@@ -1,3 +1,8 @@
 <resources>
-    <string name="app_name">Mobile</string>
+    <string name="app_name">MettiNome</string>
+    <string name="screen1_name">Screen1</string>
+    <string name="screen2_name">Screen2</string>
+    <string name="screen3_name">Screen3</string>
+    <string name="unknown_screen_name">Unknown Screen</string>
+    <string name="back_button_description">Go Back</string>
 </resources>
