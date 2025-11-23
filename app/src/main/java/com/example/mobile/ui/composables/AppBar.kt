@@ -39,7 +39,7 @@ fun AppBar(navController: NavController, title: String) {
                     Icon(Icons.Outlined.Search, contentDescription = "Search")
                 }
             }
-            if (title != "Settings" && title != "Login" && title != "Registration") {
+            if (title != "Settings" && title != "Login" && title != "Registrazione") {
                 IconButton(onClick = { /*TODO*/ }) {
                     Icon(Icons.Outlined.Settings, "Settings")
                 }

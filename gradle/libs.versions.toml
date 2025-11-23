@@ -12,9 +12,12 @@ activityCompose = "1.10.1"
 composeBom = "2024.04.01"
 navigationComposeJvmstubs = "2.9.6"
 navigationComposeAndroid = "2.9.6"
+animationCoreLint = "1.9.5"
+material3Lint = "1.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-navigation-navigation-compose2 = { module = "androidx.navigation:navigation-compose", version.ref = "androidxNavigationComposeVersion" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -32,6 +35,8 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 androidx-navigation-compose-jvmstubs = { group = "androidx.navigation", name = "navigation-compose-jvmstubs", version.ref = "navigationComposeJvmstubs" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorSerializationKotlinxJson" }
 androidx-navigation-compose-android = { group = "androidx.navigation", name = "navigation-compose-android", version.ref = "navigationComposeAndroid" }
+androidx-animation-core-lint = { group = "androidx.compose.animation", name = "animation-core-lint", version.ref = "animationCoreLint" }
+androidx-material3-lint = { group = "androidx.compose.material3", name = "material3-lint", version.ref = "material3Lint" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

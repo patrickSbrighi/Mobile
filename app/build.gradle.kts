@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.navigation.navigation.compose2)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.androidx.navigation.compose.android)
+    implementation(libs.androidx.material.icons.extended)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
