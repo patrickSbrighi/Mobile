@@ -109,7 +109,7 @@ fun LoginScreen(navController: NavController) {
             }
             Spacer(Modifier.size(6.dp))
             Row {
-                Text("Non hai un account?")
+                Text("Non hai un account? ")
                 Text(
                     text = "Registrati",
                     color = MaterialTheme.colorScheme.primary,
@@ -135,7 +135,7 @@ fun LoginScreen(navController: NavController) {
                             },
                             onErrorMessage = { errorMessage = it }
                         )) {
-                        navController.navigate(Route.Home)
+                        navController.navigate(Route.Profile)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(0.5f)

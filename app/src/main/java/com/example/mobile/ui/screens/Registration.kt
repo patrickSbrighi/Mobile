@@ -33,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.mobile.ui.Route
 import com.example.mobile.ui.composables.AppBar
+import com.example.mobile.ui.composables.RoleSelectionBlock
+
+enum class UserRole { FAN, ORGANIZER }
 
 @Composable
 fun RegistrationScreen(navController: NavController) {
@@ -47,6 +50,7 @@ fun RegistrationScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var passwordVisible by remember { mutableStateOf(false) }
     var confermPasswordVisible by remember { mutableStateOf(false) }
+    var selectedRole by remember { mutableStateOf(UserRole.FAN) }
 
     Scaffold(
         topBar = { AppBar(navController, title = "Registrazione") }
@@ -68,7 +72,7 @@ fun RegistrationScreen(navController: NavController) {
                     nameError = false
                 },
                 isError = nameError,
-                label = { Text("Nome") },
+                label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
@@ -117,7 +121,15 @@ fun RegistrationScreen(navController: NavController) {
                     }
                 }
             )
-            Spacer(Modifier.size(6.dp))
+            Spacer(Modifier.size(16.dp))
+            Text("Chi sei?", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.size(8.dp))
+
+            RoleSelectionBlock(
+                selectedRole = selectedRole,
+                onRoleSelected = { role -> selectedRole = role }
+            )
+            Spacer(Modifier.size(16.dp))
             if (errorMessage != null) {
                 Text(
                     text = errorMessage!!,
@@ -127,7 +139,7 @@ fun RegistrationScreen(navController: NavController) {
             }
             Spacer(Modifier.size(6.dp))
             Row {
-                Text("Hai già un account?")
+                Text("Hai già un account? ")
                 Text(
                     text = "Login",
                     color = MaterialTheme.colorScheme.primary,
@@ -145,6 +157,7 @@ fun RegistrationScreen(navController: NavController) {
                             email,
                             password,
                             confermPassword,
+                            selectedRole,
                             onNameError = {
                                 nameError = true
                                 name = ""
@@ -179,6 +192,7 @@ fun validateRegistration(
     email: String,
     password: String,
     confermPassword: String,
+    role: UserRole,
     onNameError: () -> Unit,
     onEmailError: () -> Unit,
     onPasswordError: () -> Unit,
