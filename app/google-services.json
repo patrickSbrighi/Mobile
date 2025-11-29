@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "887997743884",
+    "project_id": "underground-cb2f2",
+    "storage_bucket": "underground-cb2f2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:887997743884:android:4a7c21aa2822d105853f29",
+        "android_client_info": {
+          "package_name": "com.example.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0MskwBm4TGKCwVRh-MsVODEvdhT2H6Qg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
