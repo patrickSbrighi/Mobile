@@ -34,6 +34,9 @@ import androidx.navigation.NavController
 import com.example.mobile.ui.Route
 import com.example.mobile.ui.composables.AppBar
 import com.example.mobile.ui.composables.RoleSelectionBlock
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+
 
 enum class UserRole { FAN, ORGANIZER }
 
@@ -51,6 +54,8 @@ fun RegistrationScreen(navController: NavController) {
     var passwordVisible by remember { mutableStateOf(false) }
     var confermPasswordVisible by remember { mutableStateOf(false) }
     var selectedRole by remember { mutableStateOf(UserRole.FAN) }
+    val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
 
     Scaffold(
         topBar = { AppBar(navController, title = "Registrazione") }
@@ -176,7 +181,30 @@ fun RegistrationScreen(navController: NavController) {
                             },
                             onErrorMessage = { errorMessage = it }
                         )) {
-                        navController.navigate(Route.Login)
+                        auth.createUserWithEmailAndPassword(email, password)
+                            .addOnSuccessListener { result ->
+                                val uid = result.user?.uid
+
+                                if (uid != null) {
+                                    val userData = hashMapOf(
+                                        "username" to name,
+                                        "email" to email,
+                                        "role" to selectedRole.name
+                                    )
+
+                                    db.collection("users").document(uid)
+                                        .set(userData)
+                                        .addOnSuccessListener {
+                                            navController.navigate(Route.Login)
+                                        }
+                                        .addOnFailureListener { e ->
+                                            errorMessage = "Errore salvataggio dati: ${e.message}"
+                                        }
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                errorMessage = e.localizedMessage ?: "Errore durante la registrazione"
+                            }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(0.5f)

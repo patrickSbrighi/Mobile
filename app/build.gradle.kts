@@ -43,6 +43,7 @@ android {
 
 dependencies {
 
+    // --- ANDROID BASE ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -51,16 +52,27 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.navigation.navigation.compose2)
-    implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.androidx.navigation.compose.android)
+
+    // --- NAVIGAZIONE ---
+    // Uso il link diretto per sicurezza, così non dipende da libs
+    implementation("androidx.navigation:navigation-compose:2.8.4")
+
+    // --- IMMAGINI E ICONE ---
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.coil.compose)
-    implementation(libs.androidx.foundation.layout.android)
-    implementation(libs.androidx.foundation.layout.android)
-    implementation(libs.androidx.foundation.layout.android)
-    implementation(libs.androidx.foundation.layout.android)
-    implementation(libs.firebase.bom)
+    implementation(libs.ktor.serialization.kotlinx.json)
+
+    // --- FIREBASE (CORREZIONE DEFINITIVA) ---
+    // NON toccare queste tre righe. Devono essere scritte esattamente così, con le virgolette.
+
+    // 1. Il BOM (Gestisce tutte le versioni)
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+
+    // 2. Auth e Firestore (Senza versione, la prendono dal BOM sopra)
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+
+    // --- TESTING ---
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
