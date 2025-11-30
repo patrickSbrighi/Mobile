@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -21,19 +24,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.example.mobile.ui.composables.AppBar
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.mobile.ui.Route
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import com.example.mobile.ui.composables.AppBar
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -43,6 +44,7 @@ fun LoginScreen(navController: NavController) {
     var passwordError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var passwordVisible by remember { mutableStateOf(false)}
+    val auth = FirebaseAuth.getInstance()
 
     Scaffold(
         topBar = { AppBar(navController, title = "Login") }
@@ -135,7 +137,18 @@ fun LoginScreen(navController: NavController) {
                             },
                             onErrorMessage = { errorMessage = it }
                         )) {
-                        navController.navigate(Route.Profile)
+
+                        auth.signInWithEmailAndPassword(email, password)
+                            .addOnSuccessListener {
+                                navController.navigate(Route.Profile) {
+                                    popUpTo(Route.Login) { inclusive = true }
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                errorMessage = "Credenziali errate"
+                                password = ""
+                                passwordError = true
+                            }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(0.5f)
@@ -173,13 +186,5 @@ fun validateInputs(
         return false
     }
 
-    //FIREBASE
-    if (password.length < 8) {
-        onPasswordError()
-        onErrorMessage("La password deve avere almeno 8 caratteri.")
-        return false
-    }
-
     return true
 }
-

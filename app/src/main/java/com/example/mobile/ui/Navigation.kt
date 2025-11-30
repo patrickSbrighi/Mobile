@@ -9,6 +9,7 @@ import com.example.mobile.ui.screens.LoginScreen
 import com.example.mobile.ui.screens.ProfileScreen
 import com.example.mobile.ui.screens.RegistrationScreen
 import kotlinx.serialization.Serializable
+import com.google.firebase.auth.FirebaseAuth
 
 sealed interface Route {
     @Serializable data object Login: Route
@@ -19,9 +20,16 @@ sealed interface Route {
 
 @Composable
 fun NavGraph(navController: NavHostController){
+    val utenteCorrente = FirebaseAuth.getInstance().currentUser
+    val startScreen = if (utenteCorrente != null) {
+        Route.Profile
+    } else {
+        Route.Login
+    }
+
     NavHost(
         navController = navController,
-        startDestination = Route.Login
+        startDestination = startScreen
     ){
         composable<Route.Login>{
             LoginScreen(navController)
