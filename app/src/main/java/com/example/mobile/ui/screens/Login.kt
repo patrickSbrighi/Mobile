@@ -33,7 +33,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.mobile.ui.Route
-import com.example.mobile.ui.composables.AppBar
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -46,9 +45,7 @@ fun LoginScreen(navController: NavController) {
     var passwordVisible by remember { mutableStateOf(false)}
     val auth = FirebaseAuth.getInstance()
 
-    Scaffold(
-        topBar = { AppBar(navController, title = "Login") }
-    ) { contentPadding ->
+    Scaffold() { contentPadding ->
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,

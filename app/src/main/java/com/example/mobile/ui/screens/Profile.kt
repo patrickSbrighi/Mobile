@@ -34,7 +34,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.example.mobile.ui.Route
-import com.example.mobile.ui.composables.AppBar
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -117,9 +116,7 @@ fun ProfileScreen(navController: NavController) {
         }
     }
 
-    Scaffold(
-        topBar = { AppBar(navController, title = "Profilo") }
-    ) { contentPadding ->
+    Scaffold(){ contentPadding ->
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()

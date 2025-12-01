@@ -11,13 +11,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.mobile.ui.composables.AppBar
 
 @Composable
 fun HomeScreen(navController: NavController) {
-    Scaffold(
-        topBar = { AppBar(navController, title = "Home") }
-    ) { contentPadding ->
+    Scaffold() { contentPadding ->
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,

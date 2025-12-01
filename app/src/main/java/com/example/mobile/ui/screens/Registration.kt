@@ -32,7 +32,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.mobile.ui.Route
-import com.example.mobile.ui.composables.AppBar
 import com.example.mobile.ui.composables.RoleSelectionBlock
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -57,9 +56,7 @@ fun RegistrationScreen(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
 
-    Scaffold(
-        topBar = { AppBar(navController, title = "Registrazione") }
-    ) { contentPadding ->
+    Scaffold(){ contentPadding ->
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
