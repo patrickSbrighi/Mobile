@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.example.mobile.ui.screens.UserRole
+import com.example.mobile.ui.data.UserRole
 import androidx.compose.runtime.getValue
 
 @Composable

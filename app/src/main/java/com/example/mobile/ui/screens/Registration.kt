@@ -31,13 +31,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.mobile.ui.data.FirebaseFunction
+import com.example.mobile.ui.data.UserRole
 import com.example.mobile.ui.Route
 import com.example.mobile.ui.composables.RoleSelectionBlock
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-
-
-enum class UserRole { FAN, ORGANIZER }
 
 @Composable
 fun RegistrationScreen(navController: NavController) {
@@ -53,8 +50,6 @@ fun RegistrationScreen(navController: NavController) {
     var passwordVisible by remember { mutableStateOf(false) }
     var confermPasswordVisible by remember { mutableStateOf(false) }
     var selectedRole by remember { mutableStateOf(UserRole.FAN) }
-    val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
 
     Scaffold(){ contentPadding ->
         Column(
@@ -129,7 +124,7 @@ fun RegistrationScreen(navController: NavController) {
 
             RoleSelectionBlock(
                 selectedRole = selectedRole,
-                onRoleSelected = { role -> selectedRole = role }
+                onRoleSelected = { role: UserRole -> selectedRole = role }
             )
             Spacer(Modifier.size(16.dp))
             if (errorMessage != null) {
@@ -178,30 +173,19 @@ fun RegistrationScreen(navController: NavController) {
                             },
                             onErrorMessage = { errorMessage = it }
                         )) {
-                        auth.createUserWithEmailAndPassword(email, password)
-                            .addOnSuccessListener { result ->
-                                val uid = result.user?.uid
 
-                                if (uid != null) {
-                                    val userData = hashMapOf(
-                                        "username" to name,
-                                        "email" to email,
-                                        "role" to selectedRole.name
-                                    )
-
-                                    db.collection("users").document(uid)
-                                        .set(userData)
-                                        .addOnSuccessListener {
-                                            navController.navigate(Route.Login)
-                                        }
-                                        .addOnFailureListener { e ->
-                                            errorMessage = "Errore salvataggio dati: ${e.message}"
-                                        }
-                                }
+                        FirebaseFunction.register(
+                            email = email,
+                            pass = password,
+                            username = name,
+                            role = selectedRole,
+                            onSuccess = {
+                                navController.navigate(Route.Login)
+                            },
+                            onFailure = { error ->
+                                errorMessage = error
                             }
-                            .addOnFailureListener { e ->
-                                errorMessage = e.localizedMessage ?: "Errore durante la registrazione"
-                            }
+                        )
                     }
                 },
                 modifier = Modifier.fillMaxWidth(0.5f)
@@ -255,7 +239,6 @@ fun validateRegistration(
         return false
     }
 
-    //FIREBASE
     if (password.length < 8) {
         onPasswordError()
         onErrorMessage("La password deve avere almeno 8 caratteri")

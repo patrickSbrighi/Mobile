@@ -20,11 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.mobile.ui.data.Event
+import com.example.mobile.ui.data.FirebaseFunction
 import com.example.mobile.ui.composables.*
 import com.example.mobile.ui.utils.getUserLocation
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
 import org.osmdroid.config.Configuration
 import org.osmdroid.util.GeoPoint
 
@@ -32,8 +30,6 @@ import org.osmdroid.util.GeoPoint
 @Composable
 fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
-    val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
 
     Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
     Configuration.getInstance().userAgentValue = context.packageName
@@ -60,32 +56,14 @@ fun HomeScreen(navController: NavController) {
     }
 
     LaunchedEffect(Unit) {
-        val userId = auth.currentUser?.uid
-        if (userId != null) {
-            val userDoc = db.collection("users").document(userId).get().await()
-            if (userDoc.exists()) {
-                val userGenres = userDoc.get("genres") as? List<String>
-                if (!userGenres.isNullOrEmpty()) {
-                    availableGenres = listOf("Tutti") + userGenres
-                }
+        FirebaseFunction.getUserProfile { profile ->
+            if (profile != null && profile.genres.isNotEmpty()) {
+                availableGenres = listOf("Tutti") + profile.genres
             }
         }
 
-        db.collection("events").addSnapshotListener { snapshot, e ->
-            if (e == null && snapshot != null) {
-                allEvents = snapshot.documents.map { doc ->
-                    Event(
-                        id = doc.id,
-                        title = doc.getString("title") ?: "Senza Titolo",
-                        location = doc.getString("location") ?: "",
-                        date = doc.getString("date") ?: "",
-                        genre = doc.getString("genre") ?: "Altro",
-                        hype = doc.getLong("hype")?.toInt() ?: 0,
-                        lat = doc.getDouble("lat") ?: 0.0,
-                        lng = doc.getDouble("lng") ?: 0.0
-                    )
-                }
-            }
+        FirebaseFunction.listenToEvents { events ->
+            allEvents = events
         }
 
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {

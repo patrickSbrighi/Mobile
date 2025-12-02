@@ -12,11 +12,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,93 +31,74 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
+import com.example.mobile.ui.data.FirebaseFunction
 import com.example.mobile.ui.Route
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
     val context = LocalContext.current
-    val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
-    val currentUser = auth.currentUser
 
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var selectedGenres by remember { mutableStateOf(listOf<String>()) }
+
+    var savedGenres by remember { mutableStateOf(listOf<String>()) }
+    var localGenres by remember { mutableStateOf(listOf<String>()) }
+
+    val hasUnsavedChanges = savedGenres.toSet() != localGenres.toSet()
 
     var isLoading by remember { mutableStateOf(true) }
     var isEditingName by remember { mutableStateOf(false) }
     var tempUsername by remember { mutableStateOf("") }
 
     val allGenres = listOf(
-        "Pop",
-        "Indie",
-        "Jazz",
-        "Classica",
-        "Hip Hop",
-        "Rock classico",
-        "Hard rock",
-        "Alternative rock",
-        "Metal",
-        "Heavy metal",
-        "Punk rock",
-        "Hardcore punk",
-        "Grunge",
-        "Post-punk",
-        "Stoner rock",
-        "Metalcore",
-        "Garage rock",
-        "Noise rock",
-        "Post-hardcore",
-        "Thrash metal"
+        "Pop", "Indie", "Jazz", "Classica", "Hip Hop",
+        "Rock classico", "Hard rock", "Alternative rock", "Metal",
+        "Heavy metal", "Punk rock", "Hardcore punk", "Grunge",
+        "Post-punk", "Stoner rock", "Metalcore", "Garage rock",
+        "Noise rock", "Post-hardcore", "Thrash metal"
     )
 
     LaunchedEffect(Unit) {
-        if (currentUser != null) {
-            db.collection("users").document(currentUser.uid).get()
-                .addOnSuccessListener { document ->
-                    if (document != null && document.exists()) {
-                        username = document.getString("username") ?: "Utente"
-                        email = document.getString("email") ?: ""
-                        role = document.getString("role") ?: "FAN"
-                        val genres = document.get("genres") as? List<String>
-                        selectedGenres = genres ?: emptyList()
-                    }
-                    isLoading = false
+        if (FirebaseFunction.getCurrentUser() != null) {
+            FirebaseFunction.getUserProfile { profile ->
+                if (profile != null) {
+                    username = profile.username
+                    email = profile.email
+                    role = profile.role
+                    savedGenres = profile.genres
+                    localGenres = profile.genres
                 }
-                .addOnFailureListener {
-                    Toast.makeText(context, "Errore caricamento profilo", Toast.LENGTH_SHORT).show()
-                    isLoading = false
-                }
-        } else {
-            navController.navigate(Route.Login) {
-                popUpTo(0)
+                isLoading = false
             }
+        } else {
+            navController.navigate(Route.Login) { popUpTo(0) }
         }
     }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        imageUri = uri
-    }
+    ) { uri: Uri? -> imageUri = uri }
 
-    fun updateFirestoreField(field: String, value: Any) {
-        currentUser?.let { user ->
-            db.collection("users").document(user.uid)
-                .update(field, value)
-                .addOnFailureListener {
-                    Toast.makeText(context, "Errore aggiornamento", Toast.LENGTH_SHORT).show()
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Profilo", fontWeight = FontWeight.SemiBold) },
+                actions = {
+                    IconButton(onClick = {
+                        FirebaseFunction.logout()
+                        navController.navigate(Route.Login) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout", tint = MaterialTheme.colorScheme.error)
+                    }
                 }
+            )
         }
-    }
-
-    Scaffold(){ contentPadding ->
+    ) { contentPadding ->
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -175,9 +157,15 @@ fun ProfileScreen(navController: NavController) {
                                     )
                                 )
                                 IconButton(onClick = {
-                                    username = tempUsername
-                                    updateFirestoreField("username", tempUsername)
-                                    isEditingName = false
+                                    FirebaseFunction.updateUserField(
+                                        field = "username",
+                                        value = tempUsername,
+                                        onSuccess = {
+                                            username = tempUsername
+                                            isEditingName = false
+                                            Toast.makeText(context, "Nome aggiornato", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
                                 }) {
                                     Icon(Icons.Default.Check, contentDescription = "Salva", tint = MaterialTheme.colorScheme.primary)
                                 }
@@ -225,18 +213,40 @@ fun ProfileScreen(navController: NavController) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
 
-                Text(
-                    text = "Generi preferiti",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "Seleziona i generi per ricevere consigli personalizzati",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Generi preferiti", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text("Seleziona ciò che ti piace", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    }
+
+                    if (hasUnsavedChanges) {
+                        Button(
+                            onClick = {
+                                FirebaseFunction.updateUserField(
+                                    field = "genres",
+                                    value = localGenres,
+                                    onSuccess = {
+                                        savedGenres = localGenres
+                                        Toast.makeText(context, "Generi salvati", Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Salva", fontSize = 12.sp)
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
 
                 FlowRow(
@@ -244,17 +254,15 @@ fun ProfileScreen(navController: NavController) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     allGenres.forEach { genre ->
-                        val isSelected = selectedGenres.contains(genre)
+                        val isSelected = localGenres.contains(genre)
                         FilterChip(
                             selected = isSelected,
                             onClick = {
-                                val newGenres = if (isSelected) {
-                                    selectedGenres - genre
+                                localGenres = if (isSelected) {
+                                    localGenres - genre
                                 } else {
-                                    selectedGenres + genre
+                                    localGenres + genre
                                 }
-                                selectedGenres = newGenres
-                                updateFirestoreField("genres", newGenres)
                             },
                             label = { Text(genre) },
                             leadingIcon = if (isSelected) {
@@ -264,22 +272,7 @@ fun ProfileScreen(navController: NavController) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(48.dp))
-
-                Button(
-                    onClick = {
-                        auth.signOut()
-                        navController.navigate(Route.Login) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.ExitToApp, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Logout")
-                }
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }

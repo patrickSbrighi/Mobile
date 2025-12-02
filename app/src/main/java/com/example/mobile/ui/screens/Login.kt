@@ -33,7 +33,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.mobile.ui.Route
-import com.google.firebase.auth.FirebaseAuth
+import com.example.mobile.ui.data.FirebaseFunction
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -43,7 +43,6 @@ fun LoginScreen(navController: NavController) {
     var passwordError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var passwordVisible by remember { mutableStateOf(false)}
-    val auth = FirebaseAuth.getInstance()
 
     Scaffold() { contentPadding ->
         Column(
@@ -134,18 +133,20 @@ fun LoginScreen(navController: NavController) {
                             },
                             onErrorMessage = { errorMessage = it }
                         )) {
-
-                        auth.signInWithEmailAndPassword(email, password)
-                            .addOnSuccessListener {
+                        FirebaseFunction.login(
+                            email = email,
+                            pass = password,
+                            onSuccess = {
                                 navController.navigate(Route.Profile) {
                                     popUpTo(Route.Login) { inclusive = true }
                                 }
-                            }
-                            .addOnFailureListener { e ->
-                                errorMessage = "Credenziali errate"
+                            },
+                            onFailure = { errorMsg ->
+                                errorMessage = errorMsg
                                 password = ""
                                 passwordError = true
                             }
+                        )
                     }
                 },
                 modifier = Modifier.fillMaxWidth(0.5f)
