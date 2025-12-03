@@ -19,8 +19,12 @@ fun OsmUserMap(events: List<Event>, userLocation: GeoPoint?) {
 
     val startPoint = userLocation ?: DEFAULT_LOCATION
 
-    val smallUserIcon = remember(context) {
-        resizeDrawableResource(context, R.drawable.ic_user_pointer, 16, 16)
+    val eventIcon = remember(context) {
+        resizeDrawableResource(context, R.drawable.pin_nero, 32, 32)
+    }
+
+    val userIcon = remember(context) {
+        resizeDrawableResource(context, R.drawable.pin_rosso, 32, 32)
     }
 
     AndroidView(
@@ -42,6 +46,11 @@ fun OsmUserMap(events: List<Event>, userLocation: GeoPoint?) {
                     marker.title = event.title
                     marker.snippet = event.genre
                     marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+
+                    if (eventIcon != null) {
+                        marker.icon = eventIcon
+                    }
+
                     mapView.overlays.add(marker)
                 }
             }
@@ -53,8 +62,8 @@ fun OsmUserMap(events: List<Event>, userLocation: GeoPoint?) {
                 userMarker.snippet = "Posizione attuale"
                 userMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
 
-                if (smallUserIcon != null) {
-                    userMarker.icon = smallUserIcon
+                if (userIcon != null) {
+                    userMarker.icon = userIcon
                 }
 
                 mapView.overlays.add(userMarker)

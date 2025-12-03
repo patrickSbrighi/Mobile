@@ -4,10 +4,14 @@ enum class UserRole { FAN, ORGANIZER }
 
 data class Event(
     val id: String = "",
+    val organizerId: String = "",
     val title: String = "",
+    val description: String = "",
     val location: String = "",
     val date: String = "",
+    val time: String = "",
     val genre: String = "",
+    val imageUrl: String = "",
     val hype: Int = 0,
     val lat: Double = 0.0,
     val lng: Double = 0.0

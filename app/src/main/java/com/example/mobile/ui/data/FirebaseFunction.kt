@@ -71,6 +71,35 @@ object FirebaseFunction {
             .addOnFailureListener { onFailure() }
     }
 
+    fun createEvent(event: Event, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            onFailure("Utente non loggato")
+            return
+        }
+
+        val newEventRef = db.collection("events").document()
+
+        val eventData = hashMapOf(
+            "id" to newEventRef.id,
+            "organizerId" to currentUser.uid,
+            "title" to event.title,
+            "description" to event.description,
+            "location" to event.location,
+            "date" to event.date,
+            "time" to event.time,
+            "genre" to event.genre,
+            "imageUrl" to event.imageUrl,
+            "hype" to 0,
+            "lat" to event.lat,
+            "lng" to event.lng
+        )
+
+        newEventRef.set(eventData)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure("Errore creazione evento: ${it.message}") }
+    }
+
     fun listenToEvents(onEventsUpdate: (List<Event>) -> Unit): ListenerRegistration {
         return db.collection("events").addSnapshotListener { snapshot, e ->
             if (e == null && snapshot != null) {
