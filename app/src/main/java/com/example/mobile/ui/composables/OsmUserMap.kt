@@ -1,4 +1,5 @@
 package com.example.mobile.ui.composables
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -10,11 +11,13 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import com.example.mobile.ui.data.DEFAULT_LOCATION
 
 @Composable
 fun OsmUserMap(events: List<Event>, userLocation: GeoPoint?) {
     val context = LocalContext.current
-    val startPoint = userLocation ?: GeoPoint(45.4642, 9.1900)
+
+    val startPoint = userLocation ?: DEFAULT_LOCATION
 
     val smallUserIcon = remember(context) {
         resizeDrawableResource(context, R.drawable.ic_user_pointer, 16, 16)

@@ -18,5 +18,6 @@ data class UserProfile(
     val email: String = "",
     val role: String = "FAN",
     val genres: List<String> = emptyList(),
-    val city: String = ""
+    val city: String = "",
+    val profileImageUrl: String = ""
 )

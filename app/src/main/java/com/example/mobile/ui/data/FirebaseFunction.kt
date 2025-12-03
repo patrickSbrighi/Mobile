@@ -32,7 +32,8 @@ object FirebaseFunction {
                         "email" to email,
                         "role" to role.name,
                         "genres" to emptyList<String>(),
-                        "city" to ""
+                        "city" to "",
+                        "profileImageUrl" to ""
                     )
                     db.collection("users").document(uid).set(userData)
                         .addOnSuccessListener { onSuccess() }
@@ -52,7 +53,8 @@ object FirebaseFunction {
                         email = doc.getString("email") ?: "",
                         role = doc.getString("role") ?: "FAN",
                         genres = (doc.get("genres") as? List<String>) ?: emptyList(),
-                        city = doc.getString("city") ?: ""
+                        city = doc.getString("city") ?: "",
+                        profileImageUrl = doc.getString("profileImageUrl") ?: ""
                     )
                     onResult(profile)
                 } else {
