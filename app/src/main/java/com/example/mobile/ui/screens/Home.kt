@@ -23,10 +23,17 @@ import com.example.mobile.ui.data.FirebaseRepository
 import com.example.mobile.ui.composables.*
 import com.example.mobile.ui.utils.getUserLocation
 import org.osmdroid.util.GeoPoint
+import java.text.SimpleDateFormat
+import java.util.Locale
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
     val context = LocalContext.current
 
     var isMapView by remember { mutableStateOf(false) }
@@ -71,8 +78,35 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
-    val filteredEvents = remember(allEvents, selectedGenre) {
-        if (selectedGenre == "Tutti") allEvents else allEvents.filter { it.genre.equals(selectedGenre, ignoreCase = true) }
+    val processedEvents = remember(allEvents, selectedGenre, userGeoPoint) {
+        val sdf = SimpleDateFormat("d/M/yyyy", Locale.getDefault())
+        val now = System.currentTimeMillis()
+
+        var list = if (selectedGenre == "Tutti") allEvents else allEvents.filter { it.genre.equals(selectedGenre, ignoreCase = true) }
+
+        list = list.filter {
+            try {
+                val date = sdf.parse(it.date)
+                date != null && (date.time + 86400000) > now
+            } catch (e: Exception) { true }
+        }
+
+        list.sortedWith(Comparator { e1, e2 ->
+            if (userGeoPoint != null && e1.lat != 0.0 && e2.lat != 0.0) {
+                val dist1 = calculateDistance(userGeoPoint!!.latitude, userGeoPoint!!.longitude, e1.lat, e1.lng)
+                val dist2 = calculateDistance(userGeoPoint!!.latitude, userGeoPoint!!.longitude, e2.lat, e2.lng)
+
+                if (kotlin.math.abs(dist1 - dist2) > 10.0) {
+                    return@Comparator dist1.compareTo(dist2)
+                }
+            }
+
+            try {
+                val d1 = sdf.parse(e1.date)?.time ?: Long.MAX_VALUE
+                val d2 = sdf.parse(e2.date)?.time ?: Long.MAX_VALUE
+                d1.compareTo(d2)
+            } catch (e: Exception) { 0 }
+        })
     }
 
     Scaffold(
@@ -105,14 +139,23 @@ fun HomeScreen(navController: NavController) {
     ) { contentPadding ->
         Box(modifier = Modifier.padding(contentPadding).fillMaxSize()) {
             if (isMapView) {
-                OsmUserMap(events = filteredEvents, userLocation = userGeoPoint)
+                OsmUserMap(events = processedEvents, userLocation = userGeoPoint)
             } else {
-                if (filteredEvents.isEmpty()) {
+                if (processedEvents.isEmpty()) {
                     EmptyStateMessage()
                 } else {
-                    EventListSection(filteredEvents)
+                    EventListSection(events = processedEvents, onEventClick = onEventClick)
                 }
             }
         }
     }
+}
+
+fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    val r = 6371
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLon = Math.toRadians(lon2 - lon1)
+    val a = sin(dLat / 2).pow(2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2)
+    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return r * c
 }

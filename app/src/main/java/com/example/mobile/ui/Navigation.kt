@@ -15,6 +15,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.toRoute
 import com.example.mobile.ui.composables.BottomNavBar
 import com.example.mobile.ui.data.FirebaseRepository
 import com.example.mobile.ui.screens.*
@@ -66,7 +67,7 @@ fun NavGraph(navController: NavHostController) {
         NavHost(
             navController = navController,
             startDestination = startScreen,
-            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
+            modifier = Modifier.padding(innerPadding)
         ) {
             composable<Route.Login> {
                 LoginScreen(navController)
@@ -75,16 +76,30 @@ fun NavGraph(navController: NavHostController) {
                 RegistrationScreen(navController)
             }
             composable<Route.Home> {
-                HomeScreen(navController)
+                HomeScreen(
+                    navController = navController,
+                    onEventClick = { eventId ->
+                        navController.navigate(Route.EventDetail(eventId))
+                    }
+                )
             }
             composable<Route.Profile> {
                 ProfileScreen(navController, userRole = userRole)
             }
             composable<Route.Search> {
-                SearchSreen(navController)
+                SearchScreen(
+                    navController = navController,
+                    onEventClick = { eventId ->
+                        navController.navigate(Route.EventDetail(eventId))
+                    }
+                )
             }
             composable<Route.Create> {
                 CreateScreen(navController)
+            }
+            composable<Route.EventDetail> { backStackEntry ->
+                val detail: Route.EventDetail = backStackEntry.toRoute()
+                EventDetailScreen(navController, detail.eventId)
             }
         }
     }

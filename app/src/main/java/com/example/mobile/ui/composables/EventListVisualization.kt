@@ -2,6 +2,7 @@ package com.example.mobile.ui.composables
 
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,20 +20,25 @@ import coil.compose.AsyncImage
 import com.example.mobile.ui.data.Event
 
 @Composable
-fun EventListSection(events: List<Event>) {
+fun EventListSection(events: List<Event>, onEventClick: (String) -> Unit) {
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 100.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(events) { event ->
-            EventCard(event)
+            EventCard(event, onClick = { onEventClick(event.id) })
         }
     }
 }
 
 @Composable
-fun EventCard(event: Event) {
-    Card(elevation = CardDefaults.cardElevation(4.dp), modifier = Modifier.fillMaxWidth()) {
+fun EventCard(event: Event, onClick: () -> Unit) {
+    Card(
+        elevation = CardDefaults.cardElevation(4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
         Column {
             if (event.imageUrl.isNotEmpty()) {
                 AsyncImage(

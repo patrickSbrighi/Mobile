@@ -13,6 +13,7 @@ data class Event(
     val genre: String = "",
     val imageUrl: String = "",
     val hype: Int = 0,
+    val hypedBy: List<String> = emptyList(),
     val lat: Double = 0.0,
     val lng: Double = 0.0
 )

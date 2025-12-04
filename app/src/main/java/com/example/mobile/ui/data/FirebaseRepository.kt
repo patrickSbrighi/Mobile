@@ -2,6 +2,7 @@ package com.example.mobile.ui.data
 
 import android.annotation.SuppressLint
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
@@ -109,6 +110,8 @@ object FirebaseRepository {
             if (e == null && snapshot != null) {
                 val events = snapshot.documents.mapNotNull { doc ->
                     try {
+                        val hypedByList = (doc.get("hypedBy") as? List<String>) ?: emptyList()
+
                         Event(
                             id = doc.id,
                             title = doc.getString("title") ?: "Senza Titolo",
@@ -120,6 +123,7 @@ object FirebaseRepository {
                             genre = doc.getString("genre") ?: "Altro",
                             imageUrl = doc.getString("imageUrl") ?: "",
                             hype = doc.getLong("hype")?.toInt() ?: 0,
+                            hypedBy = hypedByList,
                             lat = doc.getDouble("lat") ?: 0.0,
                             lng = doc.getDouble("lng") ?: 0.0
                         )
@@ -130,5 +134,52 @@ object FirebaseRepository {
                 onEventsUpdate(events)
             }
         }
+    }
+
+    fun getEventById(eventId: String, onResult: (Event?) -> Unit) {
+        db.collection("events").document(eventId).get()
+            .addOnSuccessListener { doc ->
+                if (doc.exists()) {
+                    val hypedByList = (doc.get("hypedBy") as? List<String>) ?: emptyList()
+                    val event = Event(
+                        id = doc.id,
+                        title = doc.getString("title") ?: "",
+                        organizerId = doc.getString("organizerId") ?: "",
+                        description = doc.getString("description") ?: "",
+                        location = doc.getString("location") ?: "",
+                        date = doc.getString("date") ?: "",
+                        time = doc.getString("time") ?: "",
+                        genre = doc.getString("genre") ?: "",
+                        imageUrl = doc.getString("imageUrl") ?: "",
+                        hype = doc.getLong("hype")?.toInt() ?: 0,
+                        hypedBy = hypedByList,
+                        lat = doc.getDouble("lat") ?: 0.0,
+                        lng = doc.getDouble("lng") ?: 0.0
+                    )
+                    onResult(event)
+                } else {
+                    onResult(null)
+                }
+            }
+            .addOnFailureListener { onResult(null) }
+    }
+
+    fun toggleHype(eventId: String, onSuccess: () -> Unit = {}) {
+        val currentUser = auth.currentUser ?: return
+        val eventRef = db.collection("events").document(eventId)
+
+        db.runTransaction { transaction ->
+            val snapshot = transaction.get(eventRef)
+            val currentHype = snapshot.getLong("hype") ?: 0
+            val hypedBy = (snapshot.get("hypedBy") as? List<String>) ?: emptyList()
+
+            if (hypedBy.contains(currentUser.uid)) {
+                transaction.update(eventRef, "hype", currentHype - 1)
+                transaction.update(eventRef, "hypedBy", FieldValue.arrayRemove(currentUser.uid))
+            } else {
+                transaction.update(eventRef, "hype", currentHype + 1)
+                transaction.update(eventRef, "hypedBy", FieldValue.arrayUnion(currentUser.uid))
+            }
+        }.addOnSuccessListener { onSuccess() }
     }
 }

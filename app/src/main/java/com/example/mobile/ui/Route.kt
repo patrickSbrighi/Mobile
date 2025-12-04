@@ -9,4 +9,5 @@ sealed interface Route {
     @Serializable data object Profile: Route
     @Serializable data object Search: Route
     @Serializable data object Create: Route
+    @Serializable data class EventDetail(val eventId: String): Route
 }

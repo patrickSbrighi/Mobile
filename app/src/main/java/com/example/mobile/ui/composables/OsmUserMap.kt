@@ -17,7 +17,9 @@ import com.example.mobile.ui.data.DEFAULT_LOCATION
 fun OsmUserMap(events: List<Event>, userLocation: GeoPoint?) {
     val context = LocalContext.current
 
-    val startPoint = userLocation ?: DEFAULT_LOCATION
+    val startPoint = userLocation
+        ?: events.firstOrNull { it.lat != 0.0 }?.let { GeoPoint(it.lat, it.lng) }
+        ?: DEFAULT_LOCATION
 
     val eventIcon = remember(context) {
         resizeDrawableResource(context, R.drawable.pin_nero, 8, 8)
@@ -33,7 +35,7 @@ fun OsmUserMap(events: List<Event>, userLocation: GeoPoint?) {
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
                 minZoomLevel = 4.0
-                controller.setZoom(14.0)
+                controller.setZoom(15.0)
                 controller.setCenter(startPoint)
             }
         },
