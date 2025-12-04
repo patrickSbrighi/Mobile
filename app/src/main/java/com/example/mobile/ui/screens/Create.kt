@@ -72,6 +72,8 @@ fun CreateScreen(navController: NavController) {
     var mapZoomLevel by remember { mutableStateOf(15.0) }
     var isGeocodingLoading by remember { mutableStateOf(false) }
 
+    var isManualSearchRequired by remember { mutableStateOf(true) }
+
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
@@ -104,7 +106,8 @@ fun CreateScreen(navController: NavController) {
                 if (parts.size > 1) country = parts[1].trim()
                 if (geo != null) {
                     mapStartPoint = geo
-                    mapZoomLevel = 16.0
+                    mapZoomLevel = 18.0
+                    isManualSearchRequired = false
                 }
                 Toast.makeText(context, "Posizione GPS rilevata", Toast.LENGTH_SHORT).show()
             }
@@ -119,7 +122,6 @@ fun CreateScreen(navController: NavController) {
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
-
     datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
 
     val timePickerDialog = TimePickerDialog(
@@ -314,13 +316,13 @@ fun CreateScreen(navController: NavController) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = country,
-                        onValueChange = { country = it },
+                        onValueChange = { country = it; isManualSearchRequired = true },
                         label = { Text("Stato") },
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = province,
-                        onValueChange = { province = it },
+                        onValueChange = { province = it; isManualSearchRequired = true },
                         label = { Text("Provincia") },
                         modifier = Modifier.weight(1f)
                     )
@@ -328,7 +330,7 @@ fun CreateScreen(navController: NavController) {
 
                 OutlinedTextField(
                     value = city,
-                    onValueChange = { city = it },
+                    onValueChange = { city = it; isManualSearchRequired = true },
                     label = { Text("Comune") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -336,14 +338,14 @@ fun CreateScreen(navController: NavController) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = address,
-                        onValueChange = { address = it },
+                        onValueChange = { address = it; isManualSearchRequired = true },
                         label = { Text("Via / Piazza") },
                         modifier = Modifier.weight(2f),
                         placeholder = { Text("Es. Via Roma") }
                     )
                     OutlinedTextField(
                         value = civico,
-                        onValueChange = { civico = it },
+                        onValueChange = { civico = it; isManualSearchRequired = true },
                         label = { Text("N. Civ") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
@@ -353,14 +355,16 @@ fun CreateScreen(navController: NavController) {
                 TextButton(
                     onClick = {
                         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                            getUserLocation(context) { c, geo ->
-                                val parts = c.split(",")
+                            getUserLocation(context) { locationString, geo ->
+                                val parts = locationString.split(",")
                                 if (parts.isNotEmpty()) city = parts[0].trim()
                                 if (parts.size > 1) country = parts[1].trim()
                                 if (geo != null) {
                                     mapStartPoint = geo
-                                    mapZoomLevel = 16.0
+                                    mapZoomLevel = 18.0
+                                    isManualSearchRequired = false
                                 }
+                                Toast.makeText(context, "Posizione GPS rilevata", Toast.LENGTH_SHORT).show()
                             }
                         } else {
                             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -399,37 +403,18 @@ fun CreateScreen(navController: NavController) {
                             isLocationConfirmed = true
                         } else if (locationGeoPoint != null && isLocationConfirmed) {
                             isLocationConfirmed = false
-                            val queryParts = mutableListOf<String>()
-                            if (address.isNotBlank()) queryParts.add(address)
-                            if (civico.isNotBlank()) queryParts.add(civico)
-                            if (city.isNotBlank()) queryParts.add(city)
-                            if (province.isNotBlank()) queryParts.add(province)
-                            if (country.isNotBlank()) queryParts.add(country)
-                            val query = queryParts.joinToString(", ")
 
-                            isGeocodingLoading = true
-                            scope.launch {
-                                val results = searchPlaces(query)
-                                isGeocodingLoading = false
-                                if (results.isNotEmpty()) {
-                                    mapStartPoint = GeoPoint(results[0].lat, results[0].lon)
-                                    mapZoomLevel = 18.0
-                                }
+                            if (!isManualSearchRequired) {
                                 showMapDialog = true
-                            }
-                        } else {
-                            val queryParts = mutableListOf<String>()
-                            if (address.isNotBlank()) queryParts.add(address)
-                            if (civico.isNotBlank()) queryParts.add(civico)
-                            if (city.isNotBlank()) queryParts.add(city)
-                            if (province.isNotBlank()) queryParts.add(province)
-                            if (country.isNotBlank()) queryParts.add(country)
-
-                            val query = queryParts.joinToString(", ")
-
-                            if (query.length < 3) {
-                                Toast.makeText(context, "Inserisci almeno Città o Stato", Toast.LENGTH_SHORT).show()
                             } else {
+                                val queryParts = mutableListOf<String>()
+                                if (address.isNotBlank()) queryParts.add(address)
+                                if (civico.isNotBlank()) queryParts.add(civico)
+                                if (city.isNotBlank()) queryParts.add(city)
+                                if (province.isNotBlank()) queryParts.add(province)
+                                if (country.isNotBlank()) queryParts.add(country)
+                                val query = queryParts.joinToString(", ")
+
                                 isGeocodingLoading = true
                                 scope.launch {
                                     val results = searchPlaces(query)
@@ -437,11 +422,40 @@ fun CreateScreen(navController: NavController) {
                                     if (results.isNotEmpty()) {
                                         mapStartPoint = GeoPoint(results[0].lat, results[0].lon)
                                         mapZoomLevel = 18.0
-                                        showMapDialog = true
-                                    } else {
-                                        Toast.makeText(context, "Zona non trovata, mappa centrata di default", Toast.LENGTH_SHORT).show()
-                                        mapZoomLevel = 10.0
-                                        showMapDialog = true
+                                    }
+                                    showMapDialog = true
+                                }
+                            }
+                        } else {
+
+                            if (!isManualSearchRequired) {
+                                showMapDialog = true
+                            } else {
+                                val queryParts = mutableListOf<String>()
+                                if (address.isNotBlank()) queryParts.add(address)
+                                if (civico.isNotBlank()) queryParts.add(civico)
+                                if (city.isNotBlank()) queryParts.add(city)
+                                if (province.isNotBlank()) queryParts.add(province)
+                                if (country.isNotBlank()) queryParts.add(country)
+
+                                val query = queryParts.joinToString(", ")
+
+                                if (query.length < 3) {
+                                    Toast.makeText(context, "Inserisci almeno Città o Stato", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    isGeocodingLoading = true
+                                    scope.launch {
+                                        val results = searchPlaces(query)
+                                        isGeocodingLoading = false
+                                        if (results.isNotEmpty()) {
+                                            mapStartPoint = GeoPoint(results[0].lat, results[0].lon)
+                                            mapZoomLevel = 18.0
+                                            showMapDialog = true
+                                        } else {
+                                            Toast.makeText(context, "Zona non trovata, mappa centrata di default", Toast.LENGTH_SHORT).show()
+                                            mapZoomLevel = 10.0
+                                            showMapDialog = true
+                                        }
                                     }
                                 }
                             }

@@ -21,7 +21,7 @@ fun OsmLocationPicker(
     val context = LocalContext.current
 
     val pinIcon = remember(context) {
-        resizeDrawableResource(context, R.drawable.pin_rosso, 32, 32)
+        resizeDrawableResource(context, R.drawable.pin_rosso, 8, 12)
     }
 
     var pickedPoint by remember { mutableStateOf(startLocation) }
