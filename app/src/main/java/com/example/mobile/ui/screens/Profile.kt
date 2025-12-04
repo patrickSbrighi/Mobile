@@ -34,7 +34,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.mobile.ui.data.FirebaseFunction
+import com.example.mobile.ui.data.FirebaseRepository
 import com.example.mobile.ui.Route
 import com.example.mobile.ui.data.ALL_GENRES
 import com.example.mobile.ui.utils.saveImageToInternalStorage
@@ -58,8 +58,8 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
 
     LaunchedEffect(Unit) {
-        if (FirebaseFunction.getCurrentUser() != null) {
-            FirebaseFunction.getUserProfile { profile ->
+        if (FirebaseRepository.getCurrentUser() != null) {
+            FirebaseRepository.getUserProfile { profile ->
                 if (profile != null) {
                     username = profile.username
                     email = profile.email
@@ -84,7 +84,7 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
             val savedUri = saveImageToInternalStorage(context, uri)
             if (savedUri != null) {
                 imageUri = savedUri
-                FirebaseFunction.updateUserField("profileImageUrl", savedUri.toString())
+                FirebaseRepository.updateUserField("profileImageUrl", savedUri.toString())
             }
         }
         showImageSourceDialog = false
@@ -97,7 +97,7 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
             val savedUri = saveImageToInternalStorage(context, tempCameraUri!!)
             if (savedUri != null) {
                 imageUri = savedUri
-                FirebaseFunction.updateUserField("profileImageUrl", savedUri.toString())
+                FirebaseRepository.updateUserField("profileImageUrl", savedUri.toString())
             }
         }
         showImageSourceDialog = false
@@ -209,7 +209,7 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
                                         modifier = Modifier.weight(1f)
                                     )
                                     IconButton(onClick = {
-                                        FirebaseFunction.updateUserField("username", tempUsername, onSuccess = {
+                                        FirebaseRepository.updateUserField("username", tempUsername, onSuccess = {
                                             username = tempUsername
                                             isEditingName = false
                                         })
@@ -231,7 +231,7 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
                                 }
 
                                 IconButton(onClick = {
-                                    FirebaseFunction.logout()
+                                    FirebaseRepository.logout()
                                     navController.navigate(Route.Login) { popUpTo(0) { inclusive = true } }
                                 }) {
                                     Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout", tint = MaterialTheme.colorScheme.error)
@@ -265,7 +265,7 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
                             onClick = {
                                 val newGenres = if (isSelected) selectedGenres - genre else selectedGenres + genre
                                 selectedGenres = newGenres
-                                FirebaseFunction.updateUserField("genres", newGenres)
+                                FirebaseRepository.updateUserField("genres", newGenres)
                             },
                             label = { Text(genre) }
                         )

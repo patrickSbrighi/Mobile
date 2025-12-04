@@ -1,29 +1,12 @@
 package com.example.mobile.ui.screens
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -31,7 +14,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.mobile.ui.data.FirebaseFunction
+import com.example.mobile.ui.data.FirebaseRepository
 import com.example.mobile.ui.data.UserRole
 import com.example.mobile.ui.Route
 import com.example.mobile.ui.composables.RoleSelectionBlock
@@ -92,9 +75,7 @@ fun RegistrationScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
-                    val icon = if (passwordVisible)
-                        Icons.Default.Visibility
-                    else Icons.Default.VisibilityOff
+                    val icon = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(imageVector = icon, contentDescription = null)
                     }
@@ -110,9 +91,7 @@ fun RegistrationScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = if (confermPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
-                    val icon = if (confermPasswordVisible)
-                        Icons.Default.Visibility
-                    else Icons.Default.VisibilityOff
+                    val icon = if (confermPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
                     IconButton(onClick = { confermPasswordVisible = !confermPasswordVisible }) {
                         Icon(imageVector = icon, contentDescription = null)
                     }
@@ -150,31 +129,15 @@ fun RegistrationScreen(navController: NavController) {
             Button(
                 onClick = {
                     if (validateRegistration(
-                            name,
-                            email,
-                            password,
-                            confermPassword,
-                            selectedRole,
-                            onNameError = {
-                                nameError = true
-                                name = ""
-                            },
-                            onEmailError = {
-                                emailError = true
-                                email = ""
-                            },
-                            onPasswordError = {
-                                passwordError = true
-                                password = ""
-                            },
-                            onConfermPasswordError = {
-                                confermPasswordError  = true
-                                confermPassword = ""
-                            },
-                            onErrorMessage = { errorMessage = it }
+                            name, email, password, confermPassword, selectedRole,
+                            { nameError = true; name = "" },
+                            { emailError = true; email = "" },
+                            { passwordError = true; password = "" },
+                            { confermPasswordError = true; confermPassword = "" },
+                            { errorMessage = it }
                         )) {
 
-                        FirebaseFunction.register(
+                        FirebaseRepository.register(
                             email = email,
                             pass = password,
                             username = name,
@@ -209,33 +172,18 @@ fun validateRegistration(
     onErrorMessage: (String) -> Unit
 ): Boolean {
 
-    if (name.isBlank()) {
-        onNameError()
+    if (name.isBlank() || email.isBlank() || password.isBlank() || confermPassword.isBlank()) {
         onErrorMessage("Compilare tutti i campi")
-        return false
-    }
-
-    if (email.isBlank()) {
-        onEmailError()
-        onErrorMessage("Compilare tutti i campi")
+        if(name.isBlank()) onNameError()
+        if(email.isBlank()) onEmailError()
+        if(password.isBlank()) onPasswordError()
+        if(confermPassword.isBlank()) onConfermPasswordError()
         return false
     }
 
     if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
         onEmailError()
         onErrorMessage("Formato email non valido.")
-        return false
-    }
-
-    if (password.isBlank()) {
-        onPasswordError()
-        onErrorMessage("Compilare tutti i campi")
-        return false
-    }
-
-    if (confermPassword.isBlank()) {
-        onConfermPasswordError()
-        onErrorMessage("Compilare tutti i campi")
         return false
     }
 

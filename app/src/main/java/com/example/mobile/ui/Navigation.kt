@@ -16,44 +16,23 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.mobile.ui.composables.BottomNavBar
+import com.example.mobile.ui.data.FirebaseRepository
 import com.example.mobile.ui.screens.*
-import kotlinx.serialization.Serializable
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-
-sealed interface Route {
-    @Serializable data object Login: Route
-    @Serializable data object Registration: Route
-    @Serializable data object Home: Route
-    @Serializable data object Profile: Route
-    @Serializable data object Search: Route
-    @Serializable data object Create: Route
-}
 
 @Composable
-fun NavGraph(navController: NavHostController){
-    val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
-    val currentUser = auth.currentUser
-
+fun NavGraph(navController: NavHostController) {
+    val currentUser = FirebaseRepository.getCurrentUser()
     var userRole by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
-            db.collection("users").document(currentUser.uid).get()
-                .addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        userRole = document.getString("role")
-                    }
-                }
+            FirebaseRepository.getUserRole { role ->
+                userRole = role
+            }
         }
     }
 
-    val startScreen = if (currentUser != null) {
-        Route.Home
-    } else {
-        Route.Login
-    }
+    val startScreen = if (currentUser != null) Route.Home else Route.Login
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination

@@ -33,7 +33,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.mobile.ui.data.ALL_GENRES
 import com.example.mobile.ui.data.Event
-import com.example.mobile.ui.data.FirebaseFunction
+import com.example.mobile.ui.data.FirebaseRepository
 import com.example.mobile.ui.data.DEFAULT_LOCATION
 import com.example.mobile.ui.composables.OsmLocationPicker
 import com.example.mobile.ui.utils.getAddressFromCoordinates
@@ -403,61 +403,28 @@ fun CreateScreen(navController: NavController) {
                             isLocationConfirmed = true
                         } else if (locationGeoPoint != null && isLocationConfirmed) {
                             isLocationConfirmed = false
-
-                            if (!isManualSearchRequired) {
-                                showMapDialog = true
-                            } else {
-                                val queryParts = mutableListOf<String>()
-                                if (address.isNotBlank()) queryParts.add(address)
-                                if (civico.isNotBlank()) queryParts.add(civico)
-                                if (city.isNotBlank()) queryParts.add(city)
-                                if (province.isNotBlank()) queryParts.add(province)
-                                if (country.isNotBlank()) queryParts.add(country)
-                                val query = queryParts.joinToString(", ")
-
-                                isGeocodingLoading = true
-                                scope.launch {
-                                    val results = searchPlaces(query)
-                                    isGeocodingLoading = false
-                                    if (results.isNotEmpty()) {
-                                        mapStartPoint = GeoPoint(results[0].lat, results[0].lon)
-                                        mapZoomLevel = 18.0
-                                    }
-                                    showMapDialog = true
+                            performSearchAndShowMap(
+                                address, civico, city, province, country, isManualSearchRequired,
+                                scope, context
+                            ) { resultPoint, zoom, success ->
+                                if (success) {
+                                    mapStartPoint = resultPoint
+                                    mapZoomLevel = zoom
                                 }
+                                showMapDialog = true
+                                isGeocodingLoading = false
                             }
                         } else {
-
-                            if (!isManualSearchRequired) {
-                                showMapDialog = true
-                            } else {
-                                val queryParts = mutableListOf<String>()
-                                if (address.isNotBlank()) queryParts.add(address)
-                                if (civico.isNotBlank()) queryParts.add(civico)
-                                if (city.isNotBlank()) queryParts.add(city)
-                                if (province.isNotBlank()) queryParts.add(province)
-                                if (country.isNotBlank()) queryParts.add(country)
-
-                                val query = queryParts.joinToString(", ")
-
-                                if (query.length < 3) {
-                                    Toast.makeText(context, "Inserisci almeno Città o Stato", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    isGeocodingLoading = true
-                                    scope.launch {
-                                        val results = searchPlaces(query)
-                                        isGeocodingLoading = false
-                                        if (results.isNotEmpty()) {
-                                            mapStartPoint = GeoPoint(results[0].lat, results[0].lon)
-                                            mapZoomLevel = 18.0
-                                            showMapDialog = true
-                                        } else {
-                                            Toast.makeText(context, "Zona non trovata, mappa centrata di default", Toast.LENGTH_SHORT).show()
-                                            mapZoomLevel = 10.0
-                                            showMapDialog = true
-                                        }
-                                    }
+                            performSearchAndShowMap(
+                                address, civico, city, province, country, isManualSearchRequired,
+                                scope, context
+                            ) { resultPoint, zoom, success ->
+                                if (success) {
+                                    mapStartPoint = resultPoint
+                                    mapZoomLevel = zoom
                                 }
+                                showMapDialog = true
+                                isGeocodingLoading = false
                             }
                         }
                     },
@@ -520,7 +487,7 @@ fun CreateScreen(navController: NavController) {
                                 lng = locationGeoPoint!!.longitude
                             )
 
-                            FirebaseFunction.createEvent(
+                            FirebaseRepository.createEvent(
                                 event = newEvent,
                                 onSuccess = {
                                     isLoading = false
@@ -544,6 +511,44 @@ fun CreateScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(30.dp))
             }
+        }
+    }
+}
+
+private fun performSearchAndShowMap(
+    address: String, civico: String, city: String, province: String, country: String,
+    isManualSearchRequired: Boolean,
+    scope: kotlinx.coroutines.CoroutineScope,
+    context: android.content.Context,
+    onResult: (GeoPoint, Double, Boolean) -> Unit
+) {
+    if (!isManualSearchRequired) {
+        onResult(DEFAULT_LOCATION, 15.0, false)
+        return
+    }
+
+    val queryParts = mutableListOf<String>()
+    if (address.isNotBlank()) queryParts.add(address)
+    if (civico.isNotBlank()) queryParts.add(civico)
+    if (city.isNotBlank()) queryParts.add(city)
+    if (province.isNotBlank()) queryParts.add(province)
+    if (country.isNotBlank()) queryParts.add(country)
+
+    val query = queryParts.joinToString(", ")
+
+    if (query.length < 3) {
+        Toast.makeText(context, "Inserisci almeno Città o Stato", Toast.LENGTH_SHORT).show()
+        onResult(DEFAULT_LOCATION, 10.0, false)
+        return
+    }
+
+    scope.launch {
+        val results = searchPlaces(query)
+        if (results.isNotEmpty()) {
+            onResult(GeoPoint(results[0].lat, results[0].lon), 18.0, true)
+        } else {
+            Toast.makeText(context, "Zona non trovata, mappa centrata di default", Toast.LENGTH_SHORT).show()
+            onResult(DEFAULT_LOCATION, 10.0, true)
         }
     }
 }

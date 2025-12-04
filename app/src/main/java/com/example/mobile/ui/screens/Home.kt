@@ -2,7 +2,6 @@ package com.example.mobile.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.preference.PreferenceManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -20,19 +19,15 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.mobile.ui.data.Event
-import com.example.mobile.ui.data.FirebaseFunction
+import com.example.mobile.ui.data.FirebaseRepository
 import com.example.mobile.ui.composables.*
 import com.example.mobile.ui.utils.getUserLocation
-import org.osmdroid.config.Configuration
 import org.osmdroid.util.GeoPoint
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
-
-    Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
-    Configuration.getInstance().userAgentValue = context.packageName
 
     var isMapView by remember { mutableStateOf(false) }
     var selectedGenre by remember { mutableStateOf("Tutti") }
@@ -56,13 +51,13 @@ fun HomeScreen(navController: NavController) {
     }
 
     LaunchedEffect(Unit) {
-        FirebaseFunction.getUserProfile { profile ->
+        FirebaseRepository.getUserProfile { profile ->
             if (profile != null && profile.genres.isNotEmpty()) {
                 availableGenres = listOf("Tutti") + profile.genres
             }
         }
 
-        FirebaseFunction.listenToEvents { events ->
+        FirebaseRepository.listenToEvents { events ->
             allEvents = events
         }
 
@@ -76,7 +71,9 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
-    val filteredEvents = if (selectedGenre == "Tutti") allEvents else allEvents.filter { it.genre.equals(selectedGenre, ignoreCase = true) }
+    val filteredEvents = remember(allEvents, selectedGenre) {
+        if (selectedGenre == "Tutti") allEvents else allEvents.filter { it.genre.equals(selectedGenre, ignoreCase = true) }
+    }
 
     Scaffold(
         topBar = {

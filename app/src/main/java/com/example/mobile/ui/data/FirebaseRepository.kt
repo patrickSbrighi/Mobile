@@ -5,7 +5,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
-object FirebaseFunction {
+object FirebaseRepository {
     private val auth = FirebaseAuth.getInstance()
     @SuppressLint("StaticFieldLeak")
     private val db = FirebaseFirestore.getInstance()
@@ -27,24 +27,31 @@ object FirebaseFunction {
             .addOnSuccessListener { result ->
                 val uid = result.user?.uid
                 if (uid != null) {
-                    val userData = hashMapOf(
-                        "username" to username,
-                        "email" to email,
-                        "role" to role.name,
-                        "genres" to emptyList<String>(),
-                        "city" to "",
-                        "profileImageUrl" to ""
-                    )
-                    db.collection("users").document(uid).set(userData)
-                        .addOnSuccessListener { onSuccess() }
-                        .addOnFailureListener { onFailure("Errore salvataggio dati") }
+                    createUserDocument(uid, username, email, role, onSuccess, onFailure)
+                } else {
+                    onFailure("Errore: UID nullo")
                 }
             }
             .addOnFailureListener { onFailure(it.message ?: "Errore registrazione") }
     }
 
+    private fun createUserDocument(uid: String, username: String, email: String, role: UserRole, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val userData = hashMapOf(
+            "username" to username,
+            "email" to email,
+            "role" to role.name,
+            "genres" to emptyList<String>(),
+            "city" to "",
+            "profileImageUrl" to ""
+        )
+        db.collection("users").document(uid).set(userData)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure("Errore salvataggio dati utente") }
+    }
+
     fun getUserProfile(onResult: (UserProfile?) -> Unit) {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = auth.currentUser?.uid ?: return onResult(null)
+
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 if (doc.exists()) {
@@ -64,6 +71,13 @@ object FirebaseFunction {
             .addOnFailureListener { onResult(null) }
     }
 
+    fun getUserRole(onResult: (String?) -> Unit) {
+        val uid = auth.currentUser?.uid ?: return onResult(null)
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener { doc -> onResult(doc.getString("role")) }
+            .addOnFailureListener { onResult(null) }
+    }
+
     fun updateUserField(field: String, value: Any, onSuccess: () -> Unit = {}, onFailure: () -> Unit = {}) {
         val uid = auth.currentUser?.uid ?: return
         db.collection("users").document(uid).update(field, value)
@@ -80,19 +94,9 @@ object FirebaseFunction {
 
         val newEventRef = db.collection("events").document()
 
-        val eventData = hashMapOf(
-            "id" to newEventRef.id,
-            "organizerId" to currentUser.uid,
-            "title" to event.title,
-            "description" to event.description,
-            "location" to event.location,
-            "date" to event.date,
-            "time" to event.time,
-            "genre" to event.genre,
-            "imageUrl" to event.imageUrl,
-            "hype" to 0,
-            "lat" to event.lat,
-            "lng" to event.lng
+        val eventData = event.copy(
+            id = newEventRef.id,
+            organizerId = currentUser.uid
         )
 
         newEventRef.set(eventData)
@@ -103,18 +107,25 @@ object FirebaseFunction {
     fun listenToEvents(onEventsUpdate: (List<Event>) -> Unit): ListenerRegistration {
         return db.collection("events").addSnapshotListener { snapshot, e ->
             if (e == null && snapshot != null) {
-                val events = snapshot.documents.map { doc ->
-                    Event(
-                        id = doc.id,
-                        title = doc.getString("title") ?: "Senza Titolo",
-                        location = doc.getString("location") ?: "",
-                        date = doc.getString("date") ?: "",
-                        genre = doc.getString("genre") ?: "Altro",
-                        imageUrl = doc.getString("imageUrl") ?: "",
-                        hype = doc.getLong("hype")?.toInt() ?: 0,
-                        lat = doc.getDouble("lat") ?: 0.0,
-                        lng = doc.getDouble("lng") ?: 0.0
-                    )
+                val events = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        Event(
+                            id = doc.id,
+                            title = doc.getString("title") ?: "Senza Titolo",
+                            organizerId = doc.getString("organizerId") ?: "",
+                            description = doc.getString("description") ?: "",
+                            location = doc.getString("location") ?: "",
+                            date = doc.getString("date") ?: "",
+                            time = doc.getString("time") ?: "",
+                            genre = doc.getString("genre") ?: "Altro",
+                            imageUrl = doc.getString("imageUrl") ?: "",
+                            hype = doc.getLong("hype")?.toInt() ?: 0,
+                            lat = doc.getDouble("lat") ?: 0.0,
+                            lng = doc.getDouble("lng") ?: 0.0
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
                 onEventsUpdate(events)
             }
