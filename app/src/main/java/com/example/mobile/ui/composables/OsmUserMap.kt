@@ -20,11 +20,11 @@ fun OsmUserMap(events: List<Event>, userLocation: GeoPoint?) {
     val startPoint = userLocation ?: DEFAULT_LOCATION
 
     val eventIcon = remember(context) {
-        resizeDrawableResource(context, R.drawable.pin_nero, 32, 32)
+        resizeDrawableResource(context, R.drawable.pin_nero, 8, 8)
     }
 
     val userIcon = remember(context) {
-        resizeDrawableResource(context, R.drawable.pin_rosso, 32, 32)
+        resizeDrawableResource(context, R.drawable.pin_rosso, 8, 12)
     }
 
     AndroidView(
@@ -32,6 +32,7 @@ fun OsmUserMap(events: List<Event>, userLocation: GeoPoint?) {
             MapView(ctx).apply {
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
+                minZoomLevel = 4.0
                 controller.setZoom(14.0)
                 controller.setCenter(startPoint)
             }

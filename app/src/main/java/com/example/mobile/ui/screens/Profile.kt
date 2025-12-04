@@ -267,8 +267,7 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
                                 selectedGenres = newGenres
                                 FirebaseFunction.updateUserField("genres", newGenres)
                             },
-                            label = { Text(genre) },
-                            leadingIcon = if (isSelected) { { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) } } else null
+                            label = { Text(genre) }
                         )
                     }
                 }

@@ -23,9 +23,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
@@ -33,9 +34,12 @@ import coil.compose.AsyncImage
 import com.example.mobile.ui.data.ALL_GENRES
 import com.example.mobile.ui.data.Event
 import com.example.mobile.ui.data.FirebaseFunction
-import com.example.mobile.ui.utils.getCoordinatesFromAddress
+import com.example.mobile.ui.data.DEFAULT_LOCATION
+import com.example.mobile.ui.composables.OsmLocationPicker
+import com.example.mobile.ui.utils.getAddressFromCoordinates
 import com.example.mobile.ui.utils.getUserLocation
 import com.example.mobile.ui.utils.saveImageToInternalStorage
+import com.example.mobile.ui.utils.searchPlaces
 import kotlinx.coroutines.launch
 import org.osmdroid.util.GeoPoint
 import java.io.File
@@ -45,49 +49,45 @@ import java.util.Calendar
 @Composable
 fun CreateScreen(navController: NavController) {
     val context = LocalContext.current
-    val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-
-    var address by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
-
-    var locationGeoPoint by remember { mutableStateOf<GeoPoint?>(null) }
-    var isGeocodingLoading by remember { mutableStateOf(false) }
-
     var selectedDate by remember { mutableStateOf("") }
     var selectedTime by remember { mutableStateOf("") }
     var selectedGenre by remember { mutableStateOf("") }
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
 
+    var country by remember { mutableStateOf("Italia") }
+    var province by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var civico by remember { mutableStateOf("") }
+
+    var locationGeoPoint by remember { mutableStateOf<GeoPoint?>(null) }
+    var isLocationConfirmed by remember { mutableStateOf(false) }
+
+    var showMapDialog by remember { mutableStateOf(false) }
+    var mapStartPoint by remember { mutableStateOf(DEFAULT_LOCATION) }
+    var mapZoomLevel by remember { mutableStateOf(15.0) }
+    var isGeocodingLoading by remember { mutableStateOf(false) }
+
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
 
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            imageUri = saveImageToInternalStorage(context, uri)
-        }
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) imageUri = saveImageToInternalStorage(context, uri)
         showImageSourceDialog = false
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success && tempCameraUri != null) {
-            imageUri = saveImageToInternalStorage(context, tempCameraUri!!)
-        }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success && tempCameraUri != null) imageUri = saveImageToInternalStorage(context, tempCameraUri!!)
         showImageSourceDialog = false
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             val file = File(context.cacheDir, "temp_event_img.jpg")
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
@@ -96,14 +96,16 @@ fun CreateScreen(navController: NavController) {
         }
     }
 
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    val locationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             getUserLocation(context) { locationString, geo ->
                 val parts = locationString.split(",")
                 if (parts.isNotEmpty()) city = parts[0].trim()
-                locationGeoPoint = geo
+                if (parts.size > 1) country = parts[1].trim()
+                if (geo != null) {
+                    mapStartPoint = geo
+                    mapZoomLevel = 16.0
+                }
                 Toast.makeText(context, "Posizione GPS rilevata", Toast.LENGTH_SHORT).show()
             }
         }
@@ -117,6 +119,8 @@ fun CreateScreen(navController: NavController) {
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
+
+    datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
 
     val timePickerDialog = TimePickerDialog(
         context,
@@ -138,6 +142,54 @@ fun CreateScreen(navController: NavController) {
             )
         }
     ) { paddingValues ->
+        if (showMapDialog) {
+            Dialog(
+                onDismissRequest = { showMapDialog = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        OsmLocationPicker(
+                            startLocation = mapStartPoint,
+                            initialZoom = mapZoomLevel,
+                            onLocationPicked = { geo ->
+                                scope.launch {
+                                    locationGeoPoint = geo
+                                    val result = getAddressFromCoordinates(geo.latitude, geo.longitude)
+                                    if (result != null) {
+                                        address = result.address?.road ?: result.displayName.split(",")[0]
+                                        civico = result.address?.houseNumber ?: ""
+                                        if (!result.address?.city.isNullOrEmpty()) city = result.address?.city!!
+                                        if (!result.address?.province.isNullOrEmpty()) province = result.address?.province!!
+                                        if (!result.address?.country.isNullOrEmpty()) country = result.address?.country!!
+                                    }
+                                    isLocationConfirmed = false
+                                    showMapDialog = false
+                                }
+                            }
+                        )
+                        IconButton(
+                            onClick = { showMapDialog = false },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp)
+                                .background(Color.White.copy(alpha = 0.7f), shape = RoundedCornerShape(50))
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Chiudi")
+                        }
+
+                        Surface(
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.9f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Tocca il punto esatto sulla mappa", modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                }
+            }
+        }
+
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -155,7 +207,7 @@ fun CreateScreen(navController: NavController) {
                                 tempCameraUri = uri
                                 cameraLauncher.launch(uri)
                             } else {
-                                permissionLauncher.launch(Manifest.permission.CAMERA)
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         }) { Text("Fotocamera") }
                     },
@@ -173,6 +225,7 @@ fun CreateScreen(navController: NavController) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -229,9 +282,7 @@ fun CreateScreen(navController: NavController) {
                             enabled = false,
                             colors = OutlinedTextFieldDefaults.colors(
                                 disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                disabledBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
                         Box(Modifier.matchParentSize().clickable { datePickerDialog.show() })
@@ -248,104 +299,180 @@ fun CreateScreen(navController: NavController) {
                             enabled = false,
                             colors = OutlinedTextFieldDefaults.colors(
                                 disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                disabledBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
                         Box(Modifier.matchParentSize().clickable { timePickerDialog.show() })
                     }
                 }
 
-                Divider()
+                HorizontalDivider()
 
                 Text("Dove si svolge?", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text("Cerca zona e via, poi conferma il punto sulla mappa", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = city,
-                        onValueChange = {
-                            city = it
-                            locationGeoPoint = null
-                        },
-                        label = { Text("Città") },
+                        value = country,
+                        onValueChange = { country = it },
+                        label = { Text("Stato") },
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
-                        value = address,
-                        onValueChange = {
-                            address = it
-                            locationGeoPoint = null
-                        },
-                        label = { Text("Indirizzo") },
-                        modifier = Modifier.weight(1.5f)
+                        value = province,
+                        onValueChange = { province = it },
+                        label = { Text("Provincia") },
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = {
+                OutlinedTextField(
+                    value = city,
+                    onValueChange = { city = it },
+                    label = { Text("Comune") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = address,
+                        onValueChange = { address = it },
+                        label = { Text("Via / Piazza") },
+                        modifier = Modifier.weight(2f),
+                        placeholder = { Text("Es. Via Roma") }
+                    )
+                    OutlinedTextField(
+                        value = civico,
+                        onValueChange = { civico = it },
+                        label = { Text("N. Civ") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                }
+
+                TextButton(
+                    onClick = {
                         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                             getUserLocation(context) { c, geo ->
                                 val parts = c.split(",")
                                 if (parts.isNotEmpty()) city = parts[0].trim()
-                                locationGeoPoint = geo
+                                if (parts.size > 1) country = parts[1].trim()
+                                if (geo != null) {
+                                    mapStartPoint = geo
+                                    mapZoomLevel = 16.0
+                                }
                             }
                         } else {
                             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                         }
-                    }) {
-                        Icon(Icons.Default.MyLocation, contentDescription = null)
-                        Spacer(Modifier.width(4.dp))
-                        Text("Usa mia posizione")
-                    }
+                    },
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Usa mia posizione GPS")
+                }
 
-                    Button(
-                        onClick = {
-                            if(city.isNotEmpty() && address.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val buttonColor = when {
+                    locationGeoPoint != null && isLocationConfirmed -> Color(0xFF4CAF50)
+                    locationGeoPoint != null && !isLocationConfirmed -> MaterialTheme.colorScheme.tertiary
+                    else -> MaterialTheme.colorScheme.primary
+                }
+
+                val buttonText = when {
+                    locationGeoPoint != null && isLocationConfirmed -> "POSIZIONE CONFERMATA"
+                    locationGeoPoint != null && !isLocationConfirmed -> "CONFERMA DATI"
+                    else -> "APRI MAPPA E SELEZIONA"
+                }
+
+                val buttonIcon = when {
+                    locationGeoPoint != null && isLocationConfirmed -> Icons.Default.Check
+                    locationGeoPoint != null && !isLocationConfirmed -> Icons.Default.Edit
+                    else -> Icons.Default.Map
+                }
+
+                Button(
+                    onClick = {
+                        if (locationGeoPoint != null && !isLocationConfirmed) {
+                            isLocationConfirmed = true
+                        } else if (locationGeoPoint != null && isLocationConfirmed) {
+                            isLocationConfirmed = false
+                            val queryParts = mutableListOf<String>()
+                            if (address.isNotBlank()) queryParts.add(address)
+                            if (civico.isNotBlank()) queryParts.add(civico)
+                            if (city.isNotBlank()) queryParts.add(city)
+                            if (province.isNotBlank()) queryParts.add(province)
+                            if (country.isNotBlank()) queryParts.add(country)
+                            val query = queryParts.joinToString(", ")
+
+                            isGeocodingLoading = true
+                            scope.launch {
+                                val results = searchPlaces(query)
+                                isGeocodingLoading = false
+                                if (results.isNotEmpty()) {
+                                    mapStartPoint = GeoPoint(results[0].lat, results[0].lon)
+                                    mapZoomLevel = 18.0
+                                }
+                                showMapDialog = true
+                            }
+                        } else {
+                            val queryParts = mutableListOf<String>()
+                            if (address.isNotBlank()) queryParts.add(address)
+                            if (civico.isNotBlank()) queryParts.add(civico)
+                            if (city.isNotBlank()) queryParts.add(city)
+                            if (province.isNotBlank()) queryParts.add(province)
+                            if (country.isNotBlank()) queryParts.add(country)
+
+                            val query = queryParts.joinToString(", ")
+
+                            if (query.length < 3) {
+                                Toast.makeText(context, "Inserisci almeno Città o Stato", Toast.LENGTH_SHORT).show()
+                            } else {
                                 isGeocodingLoading = true
-                                focusManager.clearFocus()
                                 scope.launch {
-                                    val fullAddress = "$address, $city"
-                                    val coords = getCoordinatesFromAddress(fullAddress)
+                                    val results = searchPlaces(query)
                                     isGeocodingLoading = false
-                                    if (coords != null) {
-                                        locationGeoPoint = GeoPoint(coords.first, coords.second)
-                                        Toast.makeText(context, "Indirizzo trovato sulla mappa!", Toast.LENGTH_SHORT).show()
+                                    if (results.isNotEmpty()) {
+                                        mapStartPoint = GeoPoint(results[0].lat, results[0].lon)
+                                        mapZoomLevel = 18.0
+                                        showMapDialog = true
                                     } else {
-                                        Toast.makeText(context, "Indirizzo non trovato", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, "Zona non trovata, mappa centrata di default", Toast.LENGTH_SHORT).show()
+                                        mapZoomLevel = 10.0
+                                        showMapDialog = true
                                     }
                                 }
-                            } else {
-                                Toast.makeText(context, "Inserisci Città e Indirizzo", Toast.LENGTH_SHORT).show()
                             }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                    ) {
-                        if (isGeocodingLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                        } else {
-                            Icon(Icons.Default.Search, contentDescription = null)
-                            Spacer(Modifier.width(4.dp))
-                            Text("Verifica Mappa")
                         }
-                    }
-                }
-
-                if(locationGeoPoint != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.Green)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
+                ) {
+                    if (isGeocodingLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                    } else {
+                        Icon(buttonIcon, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Posizione confermata: ${locationGeoPoint!!.latitude}, ${locationGeoPoint!!.longitude}", style = MaterialTheme.typography.bodySmall)
+                        Text(buttonText)
                     }
-                } else {
-                    Text("⚠ Verifica l'indirizzo per attivare la mappa", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
 
-                Divider()
+                if (locationGeoPoint != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            if (isLocationConfirmed) "(Clicca per modificare la posizione)" else "(Controlla i dati sopra e conferma)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
                 Text("Genere Musicale", style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -362,42 +489,41 @@ fun CreateScreen(navController: NavController) {
 
                 Button(
                     onClick = {
-                        if (title.isNotEmpty() && selectedDate.isNotEmpty() && city.isNotEmpty() && address.isNotEmpty() && selectedGenre.isNotEmpty()) {
-                            if(locationGeoPoint == null) {
-                                Toast.makeText(context, "Premi 'Verifica Mappa' prima di pubblicare", Toast.LENGTH_LONG).show()
-                            } else {
-                                isLoading = true
-                                val newEvent = Event(
-                                    title = title,
-                                    description = description,
-                                    location = "$address, $city",
-                                    date = selectedDate,
-                                    time = selectedTime,
-                                    genre = selectedGenre,
-                                    imageUrl = imageUri?.toString() ?: "",
-                                    lat = locationGeoPoint?.latitude ?: 0.0,
-                                    lng = locationGeoPoint?.longitude ?: 0.0
-                                )
+                        if (title.isNotEmpty() && selectedDate.isNotEmpty() && locationGeoPoint != null && isLocationConfirmed && selectedGenre.isNotEmpty()) {
+                            isLoading = true
+                            val finalAddress = if (civico.isNotBlank()) "$address $civico" else address
+                            val formattedLocation = listOf(finalAddress, city).filter { it.isNotBlank() }.joinToString(", ")
 
-                                FirebaseFunction.createEvent(
-                                    event = newEvent,
-                                    onSuccess = {
-                                        isLoading = false
-                                        Toast.makeText(context, "Evento Creato!", Toast.LENGTH_SHORT).show()
-                                        navController.popBackStack()
-                                    },
-                                    onFailure = {
-                                        isLoading = false
-                                        Toast.makeText(context, "Errore: $it", Toast.LENGTH_LONG).show()
-                                    }
-                                )
-                            }
+                            val newEvent = Event(
+                                title = title,
+                                description = description,
+                                location = formattedLocation,
+                                date = selectedDate,
+                                time = selectedTime,
+                                genre = selectedGenre,
+                                imageUrl = imageUri?.toString() ?: "",
+                                lat = locationGeoPoint!!.latitude,
+                                lng = locationGeoPoint!!.longitude
+                            )
+
+                            FirebaseFunction.createEvent(
+                                event = newEvent,
+                                onSuccess = {
+                                    isLoading = false
+                                    Toast.makeText(context, "Evento Creato!", Toast.LENGTH_SHORT).show()
+                                    navController.popBackStack()
+                                },
+                                onFailure = {
+                                    isLoading = false
+                                    Toast.makeText(context, "Errore: $it", Toast.LENGTH_LONG).show()
+                                }
+                            )
                         } else {
-                            Toast.makeText(context, "Compila tutti i campi", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Compila tutti i campi e CONFERMA la posizione", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                    enabled = locationGeoPoint != null
+                    enabled = locationGeoPoint != null && isLocationConfirmed
                 ) {
                     Text("PUBBLICA EVENTO")
                 }

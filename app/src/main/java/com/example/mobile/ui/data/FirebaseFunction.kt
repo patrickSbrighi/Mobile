@@ -110,6 +110,7 @@ object FirebaseFunction {
                         location = doc.getString("location") ?: "",
                         date = doc.getString("date") ?: "",
                         genre = doc.getString("genre") ?: "Altro",
+                        imageUrl = doc.getString("imageUrl") ?: "",
                         hype = doc.getLong("hype")?.toInt() ?: 0,
                         lat = doc.getDouble("lat") ?: 0.0,
                         lng = doc.getDouble("lng") ?: 0.0

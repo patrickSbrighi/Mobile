@@ -25,3 +25,18 @@ data class UserProfile(
     val city: String = "",
     val profileImageUrl: String = ""
 )
+
+data class PlaceResult(
+    val displayName: String,
+    val lat: Double,
+    val lon: Double,
+    val address: AddressComponents? = null
+)
+
+data class AddressComponents(
+    val road: String = "",
+    val houseNumber: String = "",
+    val city: String = "",
+    val province: String = "",
+    val country: String = ""
+)
