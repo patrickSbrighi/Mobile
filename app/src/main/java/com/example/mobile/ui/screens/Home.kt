@@ -40,6 +40,7 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
     var selectedGenre by remember { mutableStateOf("Tutti") }
     var userCity by remember { mutableStateOf("Rilevamento...") }
     var availableGenres by remember { mutableStateOf(listOf("Tutti")) }
+    var userRole by remember { mutableStateOf<String?>(null) }
 
     var userGeoPoint by remember { mutableStateOf<GeoPoint?>(null) }
     var allEvents by remember { mutableStateOf<List<Event>>(emptyList()) }
@@ -59,8 +60,11 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
 
     LaunchedEffect(Unit) {
         FirebaseRepository.getUserProfile { profile ->
-            if (profile != null && profile.genres.isNotEmpty()) {
-                availableGenres = listOf("Tutti") + profile.genres
+            if (profile != null) {
+                userRole = profile.role
+                if (profile.genres.isNotEmpty()) {
+                    availableGenres = listOf("Tutti") + profile.genres
+                }
             }
         }
 
@@ -144,7 +148,12 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
                 if (processedEvents.isEmpty()) {
                     EmptyStateMessage()
                 } else {
-                    EventListSection(events = processedEvents, onEventClick = onEventClick)
+                    val listBottomPadding = if (userRole == "ORGANIZER") 100.dp else 16.dp
+                    EventListSection(
+                        events = processedEvents,
+                        onEventClick = onEventClick,
+                        bottomPadding = listBottomPadding
+                    )
                 }
             }
         }

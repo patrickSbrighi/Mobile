@@ -17,10 +17,14 @@ import com.example.mobile.ui.data.FirebaseRepository
 fun SearchScreen(navController: NavController, onEventClick: (String) -> Unit) {
     var query by remember { mutableStateOf("") }
     var allEvents by remember { mutableStateOf<List<Event>>(emptyList()) }
+    var userRole by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         FirebaseRepository.listenToEvents { events ->
             allEvents = events
+        }
+        FirebaseRepository.getUserRole { role ->
+            userRole = role
         }
     }
 
@@ -58,7 +62,12 @@ fun SearchScreen(navController: NavController, onEventClick: (String) -> Unit) {
                         Text("Nessun risultato trovato", color = MaterialTheme.colorScheme.secondary)
                     }
                 } else {
-                    EventListSection(events = filteredEvents, onEventClick = onEventClick)
+                    val listBottomPadding = if (userRole == "ORGANIZER") 100.dp else 16.dp
+                    EventListSection(
+                        events = filteredEvents,
+                        onEventClick = onEventClick,
+                        bottomPadding = listBottomPadding
+                    )
                 }
             } else {
                 Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = androidx.compose.ui.Alignment.TopCenter) {

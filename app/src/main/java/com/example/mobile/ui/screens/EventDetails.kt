@@ -1,7 +1,9 @@
 package com.example.mobile.ui.screens
 
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +38,7 @@ fun EventDetailScreen(navController: NavController, eventId: String) {
     var event by remember { mutableStateOf<Event?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val currentUser = FirebaseRepository.getCurrentUser()
+    val context = LocalContext.current
 
     LaunchedEffect(eventId) {
         FirebaseRepository.getEventById(eventId) { fetchedEvent ->
@@ -181,7 +185,24 @@ fun EventDetailScreen(navController: NavController, eventId: String) {
                             .background(Color.LightGray)
                     ) {
                         if (e.lat != 0.0 && e.lng != 0.0) {
-                            OsmUserMap(events = listOf(e), userLocation = null)
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                OsmUserMap(events = listOf(e), userLocation = null)
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable {
+                                            val gmmIntentUri = Uri.parse("geo:${e.lat},${e.lng}?q=${e.lat},${e.lng}(${Uri.encode(e.title)})")
+                                            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                            mapIntent.setPackage("com.google.android.apps.maps")
+                                            try {
+                                                context.startActivity(mapIntent)
+                                            } catch (ex: Exception) {
+                                                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=${e.lat},${e.lng}"))
+                                                context.startActivity(browserIntent)
+                                            }
+                                        }
+                                )
+                            }
                         } else {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Text("Mappa non disponibile")
