@@ -39,7 +39,8 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
     var isMapView by remember { mutableStateOf(false) }
     var selectedGenre by remember { mutableStateOf("Tutti") }
     var userCity by remember { mutableStateOf("Rilevamento...") }
-    var availableGenres by remember { mutableStateOf(listOf("Tutti")) }
+
+    var availableGenres by remember { mutableStateOf(listOf("Tutti", "Più Hype")) }
     var userRole by remember { mutableStateOf<String?>(null) }
 
     var userGeoPoint by remember { mutableStateOf<GeoPoint?>(null) }
@@ -63,7 +64,7 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
             if (profile != null) {
                 userRole = profile.role
                 if (profile.genres.isNotEmpty()) {
-                    availableGenres = listOf("Tutti") + profile.genres
+                    availableGenres = listOf("Tutti", "Più Hype") + profile.genres
                 }
             }
         }
@@ -86,7 +87,10 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
         val sdf = SimpleDateFormat("d/M/yyyy", Locale.getDefault())
         val now = System.currentTimeMillis()
 
-        var list = if (selectedGenre == "Tutti") allEvents else allEvents.filter { it.genre.equals(selectedGenre, ignoreCase = true) }
+        var list = when (selectedGenre) {
+            "Tutti", "Più Hype" -> allEvents
+            else -> allEvents.filter { it.genre.equals(selectedGenre, ignoreCase = true) }
+        }
 
         list = list.filter {
             try {
@@ -95,22 +99,25 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
             } catch (e: Exception) { true }
         }
 
-        list.sortedWith(Comparator { e1, e2 ->
-            if (userGeoPoint != null && e1.lat != 0.0 && e2.lat != 0.0) {
-                val dist1 = calculateDistance(userGeoPoint!!.latitude, userGeoPoint!!.longitude, e1.lat, e1.lng)
-                val dist2 = calculateDistance(userGeoPoint!!.latitude, userGeoPoint!!.longitude, e2.lat, e2.lng)
+        if (selectedGenre == "Più Hype") {
+            list.sortedByDescending { it.hype }
+        } else {
+            list.sortedWith(Comparator { e1, e2 ->
+                if (userGeoPoint != null && e1.lat != 0.0 && e2.lat != 0.0) {
+                    val dist1 = calculateDistance(userGeoPoint!!.latitude, userGeoPoint!!.longitude, e1.lat, e1.lng)
+                    val dist2 = calculateDistance(userGeoPoint!!.latitude, userGeoPoint!!.longitude, e2.lat, e2.lng)
 
-                if (kotlin.math.abs(dist1 - dist2) > 10.0) {
-                    return@Comparator dist1.compareTo(dist2)
+                    if (kotlin.math.abs(dist1 - dist2) > 10.0) {
+                        return@Comparator dist1.compareTo(dist2)
+                    }
                 }
-            }
-
-            try {
-                val d1 = sdf.parse(e1.date)?.time ?: Long.MAX_VALUE
-                val d2 = sdf.parse(e2.date)?.time ?: Long.MAX_VALUE
-                d1.compareTo(d2)
-            } catch (e: Exception) { 0 }
-        })
+                try {
+                    val d1 = sdf.parse(e1.date)?.time ?: Long.MAX_VALUE
+                    val d2 = sdf.parse(e2.date)?.time ?: Long.MAX_VALUE
+                    d1.compareTo(d2)
+                } catch (e: Exception) { 0 }
+            })
+        }
     }
 
     Scaffold(
@@ -141,14 +148,18 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
             }
         }
     ) { contentPadding ->
-        Box(modifier = Modifier.padding(contentPadding).fillMaxSize()) {
+        val listBottomPadding = if (userRole == "ORGANIZER") 170.dp else 135.dp
+
+        Box(modifier = Modifier
+            .padding(top = contentPadding.calculateTopPadding())
+            .fillMaxSize()
+        ) {
             if (isMapView) {
                 OsmUserMap(events = processedEvents, userLocation = userGeoPoint)
             } else {
                 if (processedEvents.isEmpty()) {
                     EmptyStateMessage()
                 } else {
-                    val listBottomPadding = if (userRole == "ORGANIZER") 100.dp else 16.dp
                     EventListSection(
                         events = processedEvents,
                         onEventClick = onEventClick,

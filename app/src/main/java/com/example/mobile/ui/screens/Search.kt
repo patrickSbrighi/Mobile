@@ -20,13 +20,15 @@ fun SearchScreen(navController: NavController, onEventClick: (String) -> Unit) {
     var userRole by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        FirebaseRepository.listenToEvents { events ->
-            allEvents = events
-        }
         FirebaseRepository.getUserRole { role ->
             userRole = role
         }
+        FirebaseRepository.listenToEvents { events ->
+            allEvents = events
+        }
     }
+
+    val bottomPadding = if (userRole == "ORGANIZER") 170.dp else 135.dp
 
     val filteredEvents = remember(query, allEvents) {
         if (query.isBlank()) {
@@ -55,18 +57,20 @@ fun SearchScreen(navController: NavController, onEventClick: (String) -> Unit) {
             ) {}
         }
     ) { contentPadding ->
-        Column(modifier = Modifier.padding(contentPadding)) {
+        Column(modifier = Modifier
+            .padding(top = contentPadding.calculateTopPadding())
+            .fillMaxSize()
+        ) {
             if (query.isNotEmpty()) {
                 if (filteredEvents.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = androidx.compose.ui.Alignment.TopCenter) {
                         Text("Nessun risultato trovato", color = MaterialTheme.colorScheme.secondary)
                     }
                 } else {
-                    val listBottomPadding = if (userRole == "ORGANIZER") 100.dp else 16.dp
                     EventListSection(
                         events = filteredEvents,
                         onEventClick = onEventClick,
-                        bottomPadding = listBottomPadding
+                        bottomPadding = bottomPadding
                     )
                 }
             } else {

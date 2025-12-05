@@ -37,6 +37,7 @@ import coil.compose.AsyncImage
 import com.example.mobile.ui.data.FirebaseRepository
 import com.example.mobile.ui.Route
 import com.example.mobile.ui.data.ALL_GENRES
+import com.example.mobile.ui.data.Event
 import com.example.mobile.ui.utils.saveImageToInternalStorage
 import java.io.File
 
@@ -57,8 +58,11 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
 
+    var allEvents by remember { mutableStateOf<List<Event>>(emptyList()) }
+    val currentUser = FirebaseRepository.getCurrentUser()
+
     LaunchedEffect(Unit) {
-        if (FirebaseRepository.getCurrentUser() != null) {
+        if (currentUser != null) {
             FirebaseRepository.getUserProfile { profile ->
                 if (profile != null) {
                     username = profile.username
@@ -71,6 +75,9 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
                     }
                 }
                 isLoading = false
+            }
+            FirebaseRepository.listenToEvents { events ->
+                allEvents = events
             }
         } else {
             navController.navigate(Route.Login) { popUpTo(0) }
@@ -118,6 +125,12 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
         } else {
             Toast.makeText(context, "Permesso camera negato", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    val myHypedEvents = remember(allEvents, currentUser) {
+        if (currentUser != null) {
+            allEvents.filter { it.hypedBy.contains(currentUser.uid) }
+        } else emptyList()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -272,7 +285,23 @@ fun ProfileScreen(navController: NavController, userRole: String?) {
                     }
                 }
 
-                val spacerHeight = if (userRole == "ORGANIZER") 100.dp else 16.dp
+                HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+
+                Text("I tuoi Hype 🔥", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (myHypedEvents.isEmpty()) {
+                    Text("Non hai ancora messo Hype a nessun evento.", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    myHypedEvents.forEach { event ->
+                        com.example.mobile.ui.composables.EventCard(event = event, onClick = {
+                            navController.navigate(Route.EventDetail(event.id))
+                        })
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+
+                val spacerHeight = if (userRole == "ORGANIZER") 170.dp else 120.dp
                 Spacer(modifier = Modifier.height(spacerHeight))
             }
         }

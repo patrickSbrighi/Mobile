@@ -67,7 +67,7 @@ fun NavGraph(navController: NavHostController) {
         NavHost(
             navController = navController,
             startDestination = startScreen,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(top = innerPadding.calculateTopPadding())
         ) {
             composable<Route.Login> {
                 LoginScreen(navController)

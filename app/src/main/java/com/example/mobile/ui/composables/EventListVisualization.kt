@@ -21,9 +21,18 @@ import coil.compose.AsyncImage
 import com.example.mobile.ui.data.Event
 
 @Composable
-fun EventListSection(events: List<Event>, onEventClick: (String) -> Unit, bottomPadding: Dp) {
+fun EventListSection(
+    events: List<Event>,
+    onEventClick: (String) -> Unit,
+    bottomPadding: Dp = 16.dp
+) {
     LazyColumn(
-        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = bottomPadding),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            top = 16.dp,
+            end = 16.dp,
+            bottom = bottomPadding
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(events) { event ->
