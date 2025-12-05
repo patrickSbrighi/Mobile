@@ -23,7 +23,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="Underground"
+            android:label="Undrgrnd Hype"
             android:theme="@style/Theme.Mobile">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

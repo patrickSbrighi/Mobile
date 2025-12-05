@@ -1,8 +1,10 @@
 <resources>
-    <string name="app_name">MettiNome</string>
-    <string name="screen1_name">Screen1</string>
-    <string name="screen2_name">Screen2</string>
-    <string name="screen3_name">Screen3</string>
-    <string name="unknown_screen_name">Unknown Screen</string>
-    <string name="back_button_description">Go Back</string>
+    <string name="app_name">Undrgrnd Hype</string>
+    <string name="screen1_name">Schermata1</string>
+    <string name="screen2_name">Schermata2</string>
+    <string name="screen3_name">Schermata3</string>
+    <string name="unknown_screen_name">Schermata sconosciuta</string>
+    <string name="back_button_description">Indietro</string>
+
+    <string name="default_web_client_id">517420787876-6un2inkv2if4s0j9kpg8aunla44oonra.apps.googleusercontent.com</string>
 </resources>

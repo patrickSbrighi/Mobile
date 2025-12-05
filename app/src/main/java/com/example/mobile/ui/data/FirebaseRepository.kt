@@ -2,6 +2,7 @@ package com.example.mobile.ui.data
 
 import android.annotation.SuppressLint
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -34,6 +35,37 @@ object FirebaseRepository {
                 }
             }
             .addOnFailureListener { onFailure(it.message ?: "Errore registrazione") }
+    }
+
+    fun signInWithGoogle(idToken: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnSuccessListener { authResult ->
+                val user = authResult.user
+                if (user != null) {
+                    val docRef = db.collection("users").document(user.uid)
+                    docRef.get().addOnSuccessListener { document ->
+                        if (document.exists()) {
+                            onSuccess()
+                        } else {
+                            val userData = hashMapOf(
+                                "username" to (user.displayName ?: "Google User"),
+                                "email" to (user.email ?: ""),
+                                "role" to "FAN",
+                                "genres" to emptyList<String>(),
+                                "city" to "",
+                                "profileImageUrl" to (user.photoUrl?.toString() ?: "")
+                            )
+                            docRef.set(userData)
+                                .addOnSuccessListener { onSuccess() }
+                                .addOnFailureListener { onFailure("Errore creazione profilo Google") }
+                        }
+                    }
+                } else {
+                    onFailure("Utente nullo dopo il login Google")
+                }
+            }
+            .addOnFailureListener { onFailure(it.message ?: "Errore Login Google") }
     }
 
     private fun createUserDocument(uid: String, username: String, email: String, role: UserRole, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
@@ -92,14 +124,8 @@ object FirebaseRepository {
             onFailure("Utente non loggato")
             return
         }
-
         val newEventRef = db.collection("events").document()
-
-        val eventData = event.copy(
-            id = newEventRef.id,
-            organizerId = currentUser.uid
-        )
-
+        val eventData = event.copy(id = newEventRef.id, organizerId = currentUser.uid)
         newEventRef.set(eventData)
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onFailure("Errore creazione evento: ${it.message}") }
@@ -111,7 +137,6 @@ object FirebaseRepository {
                 val events = snapshot.documents.mapNotNull { doc ->
                     try {
                         val hypedByList = (doc.get("hypedBy") as? List<String>) ?: emptyList()
-
                         Event(
                             id = doc.id,
                             title = doc.getString("title") ?: "Senza Titolo",
@@ -127,9 +152,7 @@ object FirebaseRepository {
                             lat = doc.getDouble("lat") ?: 0.0,
                             lng = doc.getDouble("lng") ?: 0.0
                         )
-                    } catch (e: Exception) {
-                        null
-                    }
+                    } catch (e: Exception) { null }
                 }
                 onEventsUpdate(events)
             }
@@ -157,9 +180,7 @@ object FirebaseRepository {
                         lng = doc.getDouble("lng") ?: 0.0
                     )
                     onResult(event)
-                } else {
-                    onResult(null)
-                }
+                } else { onResult(null) }
             }
             .addOnFailureListener { onResult(null) }
     }
@@ -167,12 +188,10 @@ object FirebaseRepository {
     fun toggleHype(eventId: String, onSuccess: () -> Unit = {}) {
         val currentUser = auth.currentUser ?: return
         val eventRef = db.collection("events").document(eventId)
-
         db.runTransaction { transaction ->
             val snapshot = transaction.get(eventRef)
             val currentHype = snapshot.getLong("hype") ?: 0
             val hypedBy = (snapshot.get("hypedBy") as? List<String>) ?: emptyList()
-
             if (hypedBy.contains(currentUser.uid)) {
                 transaction.update(eventRef, "hype", currentHype - 1)
                 transaction.update(eventRef, "hypedBy", FieldValue.arrayRemove(currentUser.uid))

@@ -23,6 +23,7 @@ firebaseCommonKtx = "22.0.1"
 firebaseFirestoreKtx = "26.0.2"
 navigationComposeVersion = "2.8.4"
 osmdroidAndroid = "6.1.18"
+playServicesAuth = "20.7.0"
 playServicesLocation = "21.0.1"
 
 [libraries]
@@ -63,6 +64,7 @@ androidx-foundation-layout-android = { group = "androidx.compose.foundation", na
 firebase-common-ktx = { group = "com.google.firebase", name = "firebase-common-ktx", version.ref = "firebaseCommonKtx" }
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 osmdroid-android = { module = "org.osmdroid:osmdroid-android", version.ref = "osmdroidAndroid" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]

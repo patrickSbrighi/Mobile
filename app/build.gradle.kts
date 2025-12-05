@@ -59,6 +59,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation(libs.play.services.auth)
     implementation(libs.osmdroid.android)
     implementation(libs.play.services.location)
     testImplementation(libs.junit)
