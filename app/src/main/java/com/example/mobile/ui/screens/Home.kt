@@ -21,15 +21,12 @@ import androidx.navigation.NavController
 import com.example.mobile.ui.data.Event
 import com.example.mobile.ui.data.FirebaseRepository
 import com.example.mobile.ui.composables.*
+import com.example.mobile.ui.utils.calculateDistance
 import com.example.mobile.ui.utils.getUserLocation
 import org.osmdroid.util.GeoPoint
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.pow
-import kotlin.math.sin
-import kotlin.math.sqrt
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +36,6 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
     var isMapView by remember { mutableStateOf(false) }
     var selectedGenre by remember { mutableStateOf("Tutti") }
     var userCity by remember { mutableStateOf("Rilevamento...") }
-
     var availableGenres by remember { mutableStateOf(listOf("Tutti", "Più Hype")) }
     var userRole by remember { mutableStateOf<String?>(null) }
 
@@ -102,21 +98,20 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
         if (selectedGenre == "Più Hype") {
             list.sortedByDescending { it.hype }
         } else {
-            list.sortedWith(Comparator { e1, e2 ->
-                if (userGeoPoint != null && e1.lat != 0.0 && e2.lat != 0.0) {
-                    val dist1 = calculateDistance(userGeoPoint!!.latitude, userGeoPoint!!.longitude, e1.lat, e1.lng)
-                    val dist2 = calculateDistance(userGeoPoint!!.latitude, userGeoPoint!!.longitude, e2.lat, e2.lng)
-
-                    if (kotlin.math.abs(dist1 - dist2) > 10.0) {
-                        return@Comparator dist1.compareTo(dist2)
-                    }
+            list.sortedBy { event ->
+                val distanceKm = if (userGeoPoint != null && event.lat != 0.0 && event.lng != 0.0) {
+                    calculateDistance(userGeoPoint!!.latitude, userGeoPoint!!.longitude, event.lat, event.lng)
+                } else {
+                    10000.0
                 }
-                try {
-                    val d1 = sdf.parse(e1.date)?.time ?: Long.MAX_VALUE
-                    val d2 = sdf.parse(e2.date)?.time ?: Long.MAX_VALUE
-                    d1.compareTo(d2)
-                } catch (e: Exception) { 0 }
-            })
+
+                val eventDate = try { sdf.parse(event.date)?.time ?: Long.MAX_VALUE } catch (e: Exception) { Long.MAX_VALUE }
+                val diffInMillis = eventDate - now
+                val daysUntil = TimeUnit.MILLISECONDS.toDays(diffInMillis).toDouble()
+
+                val score = (distanceKm * 1.0) + (daysUntil * 2.0) - (event.hype * 0.1)
+                score
+            }
         }
     }
 
@@ -169,13 +164,4 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
             }
         }
     }
-}
-
-fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-    val r = 6371
-    val dLat = Math.toRadians(lat2 - lat1)
-    val dLon = Math.toRadians(lon2 - lon1)
-    val a = sin(dLat / 2).pow(2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2)
-    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return r * c
 }

@@ -34,9 +34,10 @@ fun SearchScreen(navController: NavController, onEventClick: (String) -> Unit) {
         if (query.isBlank()) {
             emptyList()
         } else {
-            allEvents.filter {
-                it.title.contains(query, ignoreCase = true) ||
-                        it.genre.contains(query, ignoreCase = true)
+            allEvents.filter { event ->
+                event.title.contains(query, ignoreCase = true) ||
+                        event.genre.contains(query, ignoreCase = true) ||
+                        event.location.contains(query, ignoreCase = true)
             }
         }
     }
@@ -49,7 +50,7 @@ fun SearchScreen(navController: NavController, onEventClick: (String) -> Unit) {
                 onSearch = { },
                 active = false,
                 onActiveChange = {},
-                placeholder = { Text("Cerca eventi, generi...") },
+                placeholder = { Text("Cerca nome, genere, città...") },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 modifier = Modifier
                     .fillMaxWidth()

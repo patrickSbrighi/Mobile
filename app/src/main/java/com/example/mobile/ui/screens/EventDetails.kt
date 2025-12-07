@@ -29,8 +29,7 @@ import coil.compose.AsyncImage
 import com.example.mobile.ui.composables.OsmUserMap
 import com.example.mobile.ui.data.Event
 import com.example.mobile.ui.data.FirebaseRepository
-
-val FireColor = Color(0xFFFF5722)
+import com.example.mobile.ui.theme.FireColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

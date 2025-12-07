@@ -38,8 +38,8 @@ import com.example.mobile.ui.data.DEFAULT_LOCATION
 import com.example.mobile.ui.composables.OsmLocationPicker
 import com.example.mobile.ui.utils.getAddressFromCoordinates
 import com.example.mobile.ui.utils.getUserLocation
+import com.example.mobile.ui.utils.performSearchAndShowMap
 import com.example.mobile.ui.utils.saveImageToInternalStorage
-import com.example.mobile.ui.utils.searchPlaces
 import kotlinx.coroutines.launch
 import org.osmdroid.util.GeoPoint
 import java.io.File
@@ -401,20 +401,8 @@ fun CreateScreen(navController: NavController) {
                     onClick = {
                         if (locationGeoPoint != null && !isLocationConfirmed) {
                             isLocationConfirmed = true
-                        } else if (locationGeoPoint != null && isLocationConfirmed) {
-                            isLocationConfirmed = false
-                            performSearchAndShowMap(
-                                address, civico, city, province, country, isManualSearchRequired,
-                                scope, context
-                            ) { resultPoint, zoom, success ->
-                                if (success) {
-                                    mapStartPoint = resultPoint
-                                    mapZoomLevel = zoom
-                                }
-                                showMapDialog = true
-                                isGeocodingLoading = false
-                            }
                         } else {
+                            isLocationConfirmed = false
                             performSearchAndShowMap(
                                 address, civico, city, province, country, isManualSearchRequired,
                                 scope, context
@@ -511,44 +499,6 @@ fun CreateScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(30.dp))
             }
-        }
-    }
-}
-
-private fun performSearchAndShowMap(
-    address: String, civico: String, city: String, province: String, country: String,
-    isManualSearchRequired: Boolean,
-    scope: kotlinx.coroutines.CoroutineScope,
-    context: android.content.Context,
-    onResult: (GeoPoint, Double, Boolean) -> Unit
-) {
-    if (!isManualSearchRequired) {
-        onResult(DEFAULT_LOCATION, 15.0, false)
-        return
-    }
-
-    val queryParts = mutableListOf<String>()
-    if (address.isNotBlank()) queryParts.add(address)
-    if (civico.isNotBlank()) queryParts.add(civico)
-    if (city.isNotBlank()) queryParts.add(city)
-    if (province.isNotBlank()) queryParts.add(province)
-    if (country.isNotBlank()) queryParts.add(country)
-
-    val query = queryParts.joinToString(", ")
-
-    if (query.length < 3) {
-        Toast.makeText(context, "Inserisci almeno Città o Stato", Toast.LENGTH_SHORT).show()
-        onResult(DEFAULT_LOCATION, 10.0, false)
-        return
-    }
-
-    scope.launch {
-        val results = searchPlaces(query)
-        if (results.isNotEmpty()) {
-            onResult(GeoPoint(results[0].lat, results[0].lon), 18.0, true)
-        } else {
-            Toast.makeText(context, "Zona non trovata, mappa centrata di default", Toast.LENGTH_SHORT).show()
-            onResult(DEFAULT_LOCATION, 10.0, true)
         }
     }
 }

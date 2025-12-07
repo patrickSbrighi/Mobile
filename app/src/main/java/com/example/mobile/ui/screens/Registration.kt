@@ -159,7 +159,7 @@ fun RegistrationScreen(navController: NavController) {
             Spacer(Modifier.size(32.dp))
             HorizontalDivider()
             Spacer(Modifier.size(32.dp))
-            
+
             Surface(
                 onClick = { googleSignInLauncher.launch(googleSignInClient.signInIntent) },
                 shape = MaterialTheme.shapes.medium,
