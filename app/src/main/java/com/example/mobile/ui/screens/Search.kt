@@ -11,6 +11,8 @@ import androidx.navigation.NavController
 import com.example.mobile.ui.composables.EventListSection
 import com.example.mobile.ui.data.Event
 import com.example.mobile.ui.data.FirebaseRepository
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,10 +33,30 @@ fun SearchScreen(navController: NavController, onEventClick: (String) -> Unit) {
     val bottomPadding = if (userRole == "ORGANIZER") 170.dp else 135.dp
 
     val filteredEvents = remember(query, allEvents) {
+        val sdf = SimpleDateFormat("d/M/yyyy HH:mm", Locale.getDefault())
+        val now = System.currentTimeMillis()
+        val fiveHoursMillis = 5 * 60 * 60 * 1000 // 5 ore
+
+        val activeEvents = allEvents.filter { event ->
+            try {
+                val timeString = if (event.time.isNotBlank()) event.time else "00:00"
+                val dateTimeStr = "${event.date} $timeString"
+                val dateObj = sdf.parse(dateTimeStr)
+
+                if (dateObj != null) {
+                    (dateObj.time + fiveHoursMillis) > now
+                } else {
+                    false
+                }
+            } catch (e: Exception) {
+                false
+            }
+        }
+
         if (query.isBlank()) {
             emptyList()
         } else {
-            allEvents.filter { event ->
+            activeEvents.filter { event ->
                 event.title.contains(query, ignoreCase = true) ||
                         event.genre.contains(query, ignoreCase = true) ||
                         event.location.contains(query, ignoreCase = true)

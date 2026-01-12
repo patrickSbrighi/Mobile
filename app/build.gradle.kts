@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.play.services.auth)
     implementation(libs.osmdroid.android)
     implementation(libs.play.services.location)
+    implementation(libs.androidx.datastore.preferences)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

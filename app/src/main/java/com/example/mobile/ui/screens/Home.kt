@@ -80,8 +80,9 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
     }
 
     val processedEvents = remember(allEvents, selectedGenre, userGeoPoint) {
-        val sdf = SimpleDateFormat("d/M/yyyy", Locale.getDefault())
+        val sdf = SimpleDateFormat("d/M/yyyy HH:mm", Locale.getDefault())
         val now = System.currentTimeMillis()
+        val fiveHoursMillis = 5 * 60 * 60 * 1000 //5 ore
 
         var list = when (selectedGenre) {
             "Tutti", "Più Hype" -> allEvents
@@ -90,9 +91,19 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
 
         list = list.filter {
             try {
-                val date = sdf.parse(it.date)
-                date != null && (date.time + 86400000) > now
-            } catch (e: Exception) { true }
+                val timeString = if (it.time.isNotBlank()) it.time else "00:00"
+                val dateObj = sdf.parse("${it.date} $timeString")
+
+                dateObj != null && (dateObj.time + fiveHoursMillis) > now
+            } catch (e: Exception) {
+                try {
+                    val sdfDateOnly = SimpleDateFormat("d/M/yyyy", Locale.getDefault())
+                    val d = sdfDateOnly.parse(it.date)
+                    d != null && (d.time + 86400000) > now
+                } catch(ex: Exception) {
+                    true
+                }
+            }
         }
 
         if (selectedGenre == "Più Hype") {
@@ -105,7 +116,11 @@ fun HomeScreen(navController: NavController, onEventClick: (String) -> Unit) {
                     10000.0
                 }
 
-                val eventDate = try { sdf.parse(event.date)?.time ?: Long.MAX_VALUE } catch (e: Exception) { Long.MAX_VALUE }
+                val eventDate = try {
+                    val t = if (event.time.isNotBlank()) event.time else "00:00"
+                    sdf.parse("${event.date} $t")?.time ?: Long.MAX_VALUE
+                } catch (e: Exception) { Long.MAX_VALUE }
+
                 val diffInMillis = eventDate - now
                 val daysUntil = TimeUnit.MILLISECONDS.toDays(diffInMillis).toDouble()
 
